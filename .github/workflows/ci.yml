@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - "*"
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Set up Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+
+      - name: Prepare Host
+        run: |
+          sudo apt-get -qq update || true
+          sudo apt-get install -y bzr
+          # install yq
+          curl -fsSL -o yqq https://github.com/mikefarah/yq/releases/download/3.3.0/yq_linux_amd64
+          chmod +x yqq
+          sudo mv yqq /usr/local/bin/yqq
+          pipx install yq
+          # install kubectl
+          curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.24.0/bin/linux/amd64/kubectl
+          chmod +x ./kubectl
+          sudo mv ./kubectl /usr/local/bin/kubectl
+
+      - name: Run checks
+        run: |
+          ./hack/scripts/update-chart-dependencies.sh
+          make ci
+
+  kubernetes:
+    name: Kubernetes
+    runs-on: ubuntu-24.04
+    needs: build
+    strategy:
+      matrix:
+        k8s: [v1.29.14, v1.31.14, v1.33.7, v1.35.0]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yq
+        run: |
+          curl -fsSL -o yqq https://github.com/mikefarah/yq/releases/download/3.3.0/yq_linux_amd64
+          chmod +x yqq
+          sudo mv yqq /usr/local/bin/yqq
+
+      - name: Create Kubernetes ${{ matrix.k8s }} cluster
+        id: kind
+        uses: engineerd/setup-kind@v0.5.0
+        with:
+          version: v0.31.0
+          config: hack/kubernetes/kind.yaml
+          image: kindest/node:${{ matrix.k8s }}
+
+      - name: Prepare cluster for testing
+        id: local-path
+        env:
+          USERNAME: 1gtm
+          REGISTRY_SECRET: regcred
+        run: |
+          echo "waiting for nodes to be ready ..."
+          kubectl wait --for=condition=Ready nodes --all --timeout=5m
+          kubectl get nodes
+          echo
+          echo "install helm 3"
+          pushd /usr/local/bin && sudo curl -fsSLO https://github.com/x-helm/helm/releases/latest/download/helm && sudo chmod +x helm && popd
+
+      - name: Issue License
+        env:
+          BYTEBUILDERS_LICENSE_TOKEN: ${{ secrets.BYTEBUILDERS_LICENSE_TOKEN }}
+          THIS_IS_NATS_PASSWORD: ${{ secrets.THIS_IS_NATS_PASSWORD }}
+        run: |
+          export KUBECONFIG="${HOME}/.kube/config"
+          CLUSTER_UID=$(kubectl get ns kube-system -o=jsonpath='{.metadata.uid}')
+          echo "issuing license"
+          LICENSE_KEY=$(curl -X POST -d "name=1gtm&email=1gtm@appscode.com&product=platform-enterprise&cluster=${CLUSTER_UID}&tos=true&token=${BYTEBUILDERS_LICENSE_TOKEN}" https://license-issuer.appscode.com/issue-license)
+          # ref: https://github.com/mikefarah/yq/issues/230#issuecomment-487458629
+          yqq w -i ./charts/panopticon/ci/ci-values.yaml license --tag '!!str' -- "${LICENSE_KEY}"
+          yqq w -i ./charts/scanner/ci/ci-values.yaml license --tag '!!str' -- "${LICENSE_KEY}"
+          yqq w -i ./charts/scanner/ci/ci-values.yaml nats.auth.password --tag '!!str' -- "${THIS_IS_NATS_PASSWORD}"
+          # configure cluster-connector
+          yqq w -i ./charts/cluster-connector/ci/ci-values.yaml user.token --tag '!!str' -- "${BYTEBUILDERS_LICENSE_TOKEN}"
+          # config-syncer
+          LICENSE_KEY=$(curl -X POST -d "name=1gtm&email=1gtm@appscode.com&product=config-syncer-enterprise&cluster=${CLUSTER_UID}&tos=true&token=${BYTEBUILDERS_LICENSE_TOKEN}" https://license-issuer.appscode.com/issue-license)
+          yqq w -i ./charts/config-syncer/ci/ci-values.yaml license --tag '!!str' -- "${LICENSE_KEY}"
+
+      - name: Install cert-manager
+        run: |
+          kubectl apply --validate=false -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+
+      - name: Test charts
+        run: |
+          export KUBECONFIG="${HOME}/.kube/config"
+          ./hack/scripts/ct.sh
