@@ -1,0 +1,31 @@
+{{- if .Values.sidecar.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "perses.fullname" . }}-clusterrole
+  labels:
+    {{- include "perses.labels" . | nindent 4 }}
+    app.kubernetes.io/component: iam
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "watch", "list"]
+{{- if .Values.sidecar.enableSecretAccess }}
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "watch", "list"]
+{{- end }}
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ include "perses.fullname" . }}-clusterrolebinding
+roleRef:
+  kind: ClusterRole
+  name: {{ include "perses.fullname" . }}-clusterrole
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: {{ include "perses.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+{{- end }}
