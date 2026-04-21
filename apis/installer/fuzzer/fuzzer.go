@@ -26,7 +26,18 @@ import (
 // Funcs returns the fuzzer functions for this api group.
 var Funcs = func(codecs runtimeserializer.CodecFactory) []any {
 	return []any{
-		func(s *v1alpha1.Sidekick, c fuzz.Continue) {
+		func(s *v1alpha1.TenantOperator, c fuzz.Continue) {
+			c.FuzzNoCustom(s) // fuzz self without calling this function again
+		},
+		func(s *v1alpha1.ThanosOperator, c fuzz.Continue) {
+			c.FuzzNoCustom(s) // fuzz self without calling this function again
+		},
+		func(s *v1alpha1.PromLabelProxy, c fuzz.Continue) {
+			c.FuzzNoCustom(s) // fuzz self without calling this function again
+		}, func(s *v1alpha1.Perses, c fuzz.Continue) {
+			c.FuzzNoCustom(s) // fuzz self without calling this function again
+		},
+		func(s *v1alpha1.AppscodeOtelStack, c fuzz.Continue) {
 			c.FuzzNoCustom(s) // fuzz self without calling this function again
 		},
 	}

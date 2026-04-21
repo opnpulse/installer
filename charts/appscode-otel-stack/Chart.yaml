@@ -3,8 +3,8 @@ apiVersion: v2
 name: appscode-otel-stack
 description: AppsCode OpenTelemetry Stack
 type: application
-version: v2025.2.28
-appVersion: v2025.2.28
+version: v2026.4.30
+version: v2026.4.30
 home: https://github.com/ops-center
 icon: https://cdn.appscode.com/images/products/searchlight/searchlight-512x512.png
 sources: [https://github.com/ops-center]
@@ -15,4 +15,4 @@ dependencies:
   - name: opentelemetry-kube-stack
     repository: oci://ghcr.io/appscode-charts
     condition: opentelemetry-kube-stack.enabled
-    version: 0.14.10
+    version: 0.14.11

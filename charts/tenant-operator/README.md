@@ -7,8 +7,8 @@
 ```bash
 $ helm repo add appscode https://charts.appscode.com/stable/
 $ helm repo update
-$ helm search repo appscode/tenant-operator --version=v2026.2.1
-$ helm upgrade -i tenant-operator appscode/tenant-operator -n kubeops --create-namespace --version=v2026.2.1
+$ helm search repo appscode/tenant-operator --version=v2026.4.30
+$ helm upgrade -i tenant-operator appscode/tenant-operator -n kubeops --create-namespace --version=v2026.4.30
 ```
 
 ## Introduction
@@ -24,7 +24,7 @@ This chart deploys a Rancher aware proxy of ACE api on a [Kubernetes](http://kub
 To install/upgrade the chart with the release name `tenant-operator`:
 
 ```bash
-$ helm upgrade -i tenant-operator appscode/tenant-operator -n kubeops --create-namespace --version=v2026.2.1
+$ helm upgrade -i tenant-operator appscode/tenant-operator -n kubeops --create-namespace --version=v2026.4.30
 ```
 
 The command deploys a Rancher aware proxy of ACE api on the Kubernetes cluster in the default configuration. The [configuration](#configuration) section lists the parameters that can be configured during installation.
@@ -86,12 +86,12 @@ The following table lists the configurable parameters of the `tenant-operator` c
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm upgrade -i`. For example:
 
 ```bash
-$ helm upgrade -i tenant-operator appscode/tenant-operator -n kubeops --create-namespace --version=v2026.2.1 --set replicaCount=1
+$ helm upgrade -i tenant-operator appscode/tenant-operator -n kubeops --create-namespace --version=v2026.4.30 --set replicaCount=1
 ```
 
 Alternatively, a YAML file that specifies the values for the parameters can be provided while
 installing the chart. For example:
 
 ```bash
-$ helm upgrade -i tenant-operator appscode/tenant-operator -n kubeops --create-namespace --version=v2026.2.1 --values values.yaml
+$ helm upgrade -i tenant-operator appscode/tenant-operator -n kubeops --create-namespace --version=v2026.4.30 --values values.yaml
 ```
