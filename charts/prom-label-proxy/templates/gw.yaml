@@ -1,0 +1,63 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ include "prom-label-proxy.name" . }}-gw
+  namespace: {{ template "prom-label-proxy.namespace" . }}
+spec:
+  gatewayClassName: {{ .Values.infra.gatewayClassName }}
+  listeners:
+    - name: https
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: {{ include "prom-label-proxy.name" . }}-gw-cert
+            namespace: {{ template "prom-label-proxy.namespace" . }}
+
+---
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "prom-label-proxy.name" . }}-route
+  namespace: {{ template "prom-label-proxy.namespace" . }}
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ include "prom-label-proxy.name" . }}-gw
+      namespace: {{ template "prom-label-proxy.namespace" . }}
+      sectionName: https
+
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /telemetry
+        - path:
+            type: PathPrefix
+            value: /api/v1
+      backendRefs:
+        - name: {{ include "prom-label-proxy.name" . }}
+          port: 8080
+
+---
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ include "prom-label-proxy.name" . }}-backend-tls
+  namespace: {{ template "prom-label-proxy.namespace" . }}
+spec:
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: {{ include "prom-label-proxy.name" . }}
+  validation:
+    caCertificateRefs:
+      - group: ""
+        kind: Secret
+        name: {{ include "prom-label-proxy.name" . }}-gw-cert
+    hostname: {{ include "prom-label-proxy.name" . }}.{{ template "prom-label-proxy.namespace" . }}.svc.cluster.local

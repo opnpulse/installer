@@ -1,0 +1,11 @@
+{{- if .Values.infra.tls.jks.password }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "prom-label-proxy.name" . }}-gw-jkscred
+  namespace: {{ template "prom-label-proxy.namespace" . }}
+  labels:
+    {{- include "prom-label-proxy.labels" . | nindent 4 }}
+stringData:
+  password: {{ .Values.infra.tls.jks.password | quote }}
+{{- end }}

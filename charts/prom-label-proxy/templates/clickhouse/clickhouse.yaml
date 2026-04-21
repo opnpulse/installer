@@ -1,0 +1,61 @@
+{{ if .Values.clickhouse.enabled }}
+apiVersion: kubedb.com/v1alpha2
+kind: ClickHouse
+metadata:
+  name: {{ include "prom-label-proxy.fullname" . }}-clickhouse
+  namespace: {{ template "prom-label-proxy.namespace" . }}
+spec:
+  version: {{ .Values.clickhouse.version | quote }}
+  deletionPolicy: {{ .Values.clickhouse.deletionPolicy | quote }}
+
+{{- if eq .Values.clickhouse.deploymentMode "cluster" }}
+  clusterTopology:
+    clickHouseKeeper:
+      externallyManaged: {{ .Values.clickhouse.clusterTopology.clickHouseKeeper.externallyManaged }}
+      spec:
+        replicas: {{ .Values.clickhouse.clusterTopology.clickHouseKeeper.replicas }}
+        storage:
+          {{- if .Values.clickhouse.clusterTopology.clickHouseKeeper.storage.storageClassName }}
+          storageClassName: {{ .Values.clickhouse.clusterTopology.clickHouseKeeper.storage.storageClassName | quote }}
+          {{- end }}
+          accessModes:
+            {{- toYaml .Values.clickhouse.clusterTopology.clickHouseKeeper.storage.accessModes | nindent 12 }}
+          resources:
+            {{- toYaml .Values.clickhouse.clusterTopology.clickHouseKeeper.storage.resources | nindent 12 }}
+    cluster:
+      - name: {{ .Values.clickhouse.clusterTopology.cluster.name | quote }}
+        shards: {{ .Values.clickhouse.clusterTopology.cluster.shards }}
+        replicas: {{ .Values.clickhouse.clusterTopology.cluster.replicas }}
+        podTemplate:
+          {{- toYaml .Values.clickhouse.clusterTopology.cluster.podTemplate | nindent 10 }}
+        storage:
+          {{- if .Values.clickhouse.clusterTopology.cluster.storage.storageClassName }}
+          storageClassName: {{ .Values.clickhouse.clusterTopology.cluster.storage.storageClassName | quote }}
+          {{- end }}
+          accessModes:
+            {{- toYaml .Values.clickhouse.clusterTopology.cluster.storage.accessModes | nindent 12 }}
+          resources:
+            {{- toYaml .Values.clickhouse.clusterTopology.cluster.storage.resources | nindent 12 }}
+{{- else }}
+  {{- if .Values.clickhouse.tls.clientCaCertificateRefs }}
+  tls:
+    clientCaCertificateRefs:
+      {{- range .Values.clickhouse.tls.clientCaCertificateRefs }}
+      - name: {{ .name | quote }}
+        key: {{ .key | quote }}
+      {{- end }}
+  {{- end }}
+  {{- if .Values.clickhouse.s3.endpoint }}      
+  configuration:
+    secretName: {{ include "prom-label-proxy.fullname" . }}-clickhouse-storage-config
+  {{- end }}
+  storage:
+    {{- if .Values.clickhouse.storage.storageClassName }}
+    storageClassName: {{ .Values.clickhouse.storage.storageClassName | quote }}
+    {{- end }}
+    accessModes:
+      {{- toYaml .Values.clickhouse.storage.accessModes | nindent 6 }}
+    resources:
+      {{- toYaml .Values.clickhouse.storage.resources | nindent 6 }}
+{{- end }}
+{{- end }}

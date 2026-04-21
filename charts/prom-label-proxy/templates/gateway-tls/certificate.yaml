@@ -1,0 +1,44 @@
+{{- if not (eq .Values.infra.tls.issuer "external") }}
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "prom-label-proxy.name" . }}-gw
+  namespace: {{ template "prom-label-proxy.namespace" . }}
+  labels:
+    {{- include "prom-label-proxy.labels" . | nindent 4 }}
+spec:
+  secretName: {{ include "prom-label-proxy.name" . }}-gw-cert
+  secretTemplate:
+    annotations:
+      vcluster.loft.sh/force-sync: "true"
+  issuerRef:
+    group: cert-manager.io
+    kind: Issuer
+    name: {{ include "prom-label-proxy.name" . }}-gw
+  {{- if eq .Values.infra.hostType "domain" }}
+  commonName: {{ .Values.infra.host }}
+  dnsNames:
+    - {{ .Values.infra.host }}
+  {{- else }}
+  ipAddresses:
+    - "{{ .Values.infra.host }}"
+  dnsNames:
+    - {{ include "prom-label-proxy.name" . }}.{{ template "prom-label-proxy.namespace" . }}.svc
+    - {{ include "prom-label-proxy.name" . }}.{{ template "prom-label-proxy.namespace" . }}.svc.cluster.local
+  {{- end }}
+  usages:
+    - key agreement
+    - digital signature
+    - server auth
+  {{- if .Values.infra.tls.jks.password }}
+  keystores:
+    jks:
+      create: true
+      alias: aws
+      passwordSecretRef:
+        name: {{ include "prom-label-proxy.name" . }}-gw-jkscred
+        key: password
+  {{- end }}
+
+{{- end }}
