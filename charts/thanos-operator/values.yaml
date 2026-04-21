@@ -23,12 +23,12 @@ manager:
     - --metrics-secure
     - --zap-encoder=console
     - --zap-log-level=debug
-#    - --log.format=logfmt
-#    - --log.level=debug
-#    - --enable-feature=service-monitor
-#    - --enable-feature=prometheus-rule
-#    - --enable-feature=kube-resource-sync
-#    - --enable-feature=otel-sidecar
+  #    - --log.format=logfmt
+  #    - --log.level=debug
+  #    - --enable-feature=service-monitor
+  #    - --enable-feature=prometheus-rule
+  #    - --enable-feature=kube-resource-sync
+  #    - --enable-feature=otel-sidecar
 
   ## Environment variables
   ##
@@ -54,7 +54,7 @@ manager:
     allowPrivilegeEscalation: false
     capabilities:
       drop:
-      - ALL
+        - ALL
 
   ## Resource limits and requests
   ##
@@ -112,3 +112,12 @@ certManager:
 prometheus:
   enable: false
 
+## S3-compatible object storage configuration for Thanos.
+## When enabled, creates the thanos-object-storage-secret.
+##
+objectStorage:
+  bucket: ""
+  endpoint: ""
+  accessKey: ""
+  secretKey: ""
+  prefix: "metrics"

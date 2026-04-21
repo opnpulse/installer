@@ -37,6 +37,18 @@ spec:
           resources:
             {{- toYaml .Values.clickhouse.clusterTopology.cluster.storage.resources | nindent 12 }}
 {{- else }}
+  {{- if .Values.clickhouse.tls.clientCaCertificateRefs }}
+  tls:
+    clientCaCertificateRefs:
+      {{- range .Values.clickhouse.tls.clientCaCertificateRefs }}
+      - name: {{ .name | quote }}
+        key: {{ .key | quote }}
+      {{- end }}
+  {{- end }}
+  {{- if .Values.clickhouse.s3.endpoint }}      
+  configuration:
+    secretName: {{ include "prom-label-proxy.fullname" . }}-clickhouse-storage-config
+  {{- end }}
   storage:
     {{- if .Values.clickhouse.storage.storageClassName }}
     storageClassName: {{ .Values.clickhouse.storage.storageClassName | quote }}
