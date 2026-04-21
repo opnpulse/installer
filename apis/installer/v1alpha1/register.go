@@ -56,6 +56,16 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&Sidekick{},
 		&SidekickList{},
+		&TenantOperator{},
+		&TenantOperatorList{},
+		&ThanosOperator{},
+		&ThanosOperatorList{},
+		&PromLabelProxy{},
+		&PromLabelProxyList{},
+		&Perses{},
+		&PersesList{},
+		&AppscodeOtelStack{},
+		&AppscodeOtelStackList{},
 	)
 
 	scheme.AddKnownTypes(SchemeGroupVersion,

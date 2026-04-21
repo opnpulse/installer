@@ -1,0 +1,18 @@
+project:
+  name: Prom Label Proxy by AppsCode
+  shortName: Prom Label Proxy
+  url: https://github.com/prometheus-community/prom-label-proxy
+  description: A proxy that enforces a given label in a given PromQL query.
+  app: a Prom Label Proxy
+repository:
+  url: https://charts.appscode.com/stable/
+  name: appscode
+chart:
+  name: prom-label-proxy
+  values: -- generate from values file --
+  valuesExample: -- generate from values file --
+prerequisites:
+- Kubernetes 1.21+
+release:
+  name: prom-label-proxy
+  namespace: monitoring
