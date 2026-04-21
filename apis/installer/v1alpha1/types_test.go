@@ -27,7 +27,11 @@ import (
 
 func TestDefaultValues(t *testing.T) {
 	checker := schemachecker.New(os.DirFS("../../.."),
-		schemachecker.TestCase{Obj: v1alpha1.SidekickSpec{}},
+		schemachecker.TestCase{Obj: v1alpha1.TenantOperator{}},
+		schemachecker.TestCase{Obj: v1alpha1.ThanosOperator{}},
+		schemachecker.TestCase{Obj: v1alpha1.PromLabelProxy{}},
+		schemachecker.TestCase{Obj: v1alpha1.Perses{}},
+		schemachecker.TestCase{Obj: v1alpha1.AppscodeOtelStack{}},
 	)
 	checker.TestAll(t)
 }
