@@ -75,6 +75,7 @@ The following table lists the configurable parameters of the `thanos-operator` c
 | objectStorage.accessKey                          |                                                                                                                 | <code>""</code>                             |
 | objectStorage.secretKey                          |                                                                                                                 | <code>""</code>                             |
 | objectStorage.prefix                             |                                                                                                                 | <code>"metrics"</code>                      |
+| objectStorage.region                             |                                                                                                                 | <code>"us-east-1"</code>                    |
 
 
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm upgrade -i`. For example:

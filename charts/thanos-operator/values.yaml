@@ -121,3 +121,4 @@ objectStorage:
   accessKey: ""
   secretKey: ""
   prefix: "metrics"
+  region: "us-east-1"

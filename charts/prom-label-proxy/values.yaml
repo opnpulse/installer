@@ -354,9 +354,11 @@ clickhouse:
     #   key: public.crt
   # S3-compatible storage configuration for ClickHouse tiered storage
   s3:
+    bucket: ""
     endpoint: ""
-    accessKeyId: ""
-    secretAccessKey: ""
+    accessKey: ""
+    secretKey: ""
+    prefix: "logs"
     region: "us-east-1"
     skipVerify: 1
 
