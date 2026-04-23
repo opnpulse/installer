@@ -13,7 +13,7 @@ replicaCount: 1
 registryFQDN: ghcr.io
 image:
   # Docker registry used to pull operator image
-  registry: appscode
+  registry: opnpulse
   # Name of operator container image
   repository: tenant-operator
   # Operator container image tag

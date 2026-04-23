@@ -17,3 +17,9 @@
 set -e
 
 helm repo add appscode https://charts.appscode.com/stable/ || true
+
+for chart in charts/*/; do
+    if [ -f "${chart}Chart.yaml" ] && grep -q "^dependencies:" "${chart}Chart.yaml"; then
+        helm dependency update "$chart"
+    fi
+done

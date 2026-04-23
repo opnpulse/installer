@@ -12,10 +12,10 @@ fullnameOverride: ""
 ##
 image:
   # -- Perses image repository and name
-  name: "rokibulhasan114/perses"
+  name: "ghcr.io/opnpulse/perses"
 
   # -- Overrides the image tag whose default is the chart appVersion.
-  version: "v0.0.1"
+  version: "v2026.4.24"
 
   # -- Default image pull policy
   pullPolicy: Always
@@ -272,7 +272,7 @@ config:
       - /etc/perses/provisioning
     interval: 10m
 
-# -- Persistence configuration for Perses provisioning. 
+# -- Persistence configuration for Perses provisioning.
 # For more information on provisioning feature, see: https://perses.dev/perses/docs/configuration/provisioning/
 # When enabled, a PersistentVolumeClaim (PVC) is created via StatefulSet volumeClaimTemplates.
 # The PVC will be named: provisioning-<statefulset-name>-<ordinal>

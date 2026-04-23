@@ -1,0 +1,21 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prom-label-proxy-tenant-reader
+rules:
+  - apiGroups: ["monitoring.k8s.appscode.com"]
+    resources: ["tenants"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prom-label-proxy-tenant-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prom-label-proxy-tenant-reader
+subjects:
+  - kind: ServiceAccount
+    name: {{ template "prom-label-proxy.serviceAccountName" . }}
+    namespace: {{ template "prom-label-proxy.namespace" . }}

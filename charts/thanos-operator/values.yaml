@@ -12,8 +12,8 @@ manager:
   replicas: 1
 
   image:
-    repository: quay.io/thanos/thanos-operator
-    tag: main-2025-10-23-e28d488
+    repository: ghcr.io/opnpulse/thanos-operator
+    tag: v2026.4.24
     pullPolicy: IfNotPresent
 
   ## Arguments
@@ -21,14 +21,14 @@ manager:
   args:
     - --leader-elect
     - --metrics-secure
-    - --zap-encoder=console
-    - --zap-log-level=debug
-  #    - --log.format=logfmt
-  #    - --log.level=debug
-  #    - --enable-feature=service-monitor
-  #    - --enable-feature=prometheus-rule
-  #    - --enable-feature=kube-resource-sync
+    - --log.format=logfmt
+    - --log.level=debug
+    - --enable-feature=service-monitor
+    - --enable-feature=prometheus-rule
+    - --enable-feature=kube-resource-sync
   #    - --enable-feature=otel-sidecar
+  #    - --zap-encoder=console
+  #    - --zap-log-level=debug
 
   ## Environment variables
   ##
@@ -55,6 +55,8 @@ manager:
     capabilities:
       drop:
         - ALL
+    seccompProfile:
+      type: RuntimeDefault
 
   ## Resource limits and requests
   ##
@@ -115,9 +117,3 @@ prometheus:
 ## S3-compatible object storage configuration for Thanos.
 ## When enabled, creates the thanos-object-storage-secret.
 ##
-objectStorage:
-  bucket: ""
-  endpoint: ""
-  accessKey: ""
-  secretKey: ""
-  prefix: "metrics"

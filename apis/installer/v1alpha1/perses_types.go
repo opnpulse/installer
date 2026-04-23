@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	core "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kmodules.xyz/resource-metadata/apis/shared"
 )
@@ -88,6 +89,22 @@ type PersesSpec struct {
 	TLS                       PersesTLS         `json:"tls"`
 	// +optional
 	Distro shared.DistroSpec `json:"distro"`
+	// +optional
+	Datasources *apiextensionsv1.JSON `json:"datasources"`
+	// +optional
+	ExtraArgs *apiextensionsv1.JSON `json:"extraArgs"`
+	// +optional
+	ExtraObjects *apiextensionsv1.JSON `json:"extraObjects"`
+	// +optional
+	OciArtifacts *apiextensionsv1.JSON `json:"ociArtifacts"`
+	// +optional
+	TestFramework PersesTestFramework `json:"testFramework"`
+	// +optional
+	TopologySpreadConstraints []core.TopologySpreadConstraint `json:"topologySpreadConstraints"`
+	// +optional
+	VolumeMounts []core.VolumeMount `json:"volumeMounts"`
+	// +optional
+	Volumes []core.Volume `json:"volumes"`
 }
 
 type PersesImage struct {
@@ -112,7 +129,14 @@ type PersesServiceMonitor struct {
 	//+optional
 	Labels map[string]string `json:"labels"`
 	//+optional
+	Selector PersesServiceMonitorSelector `json:"selector"`
+	//+optional
 	Interval string `json:"interval"`
+}
+
+type PersesServiceMonitorSelector struct {
+	//+optional
+	MatchLabels map[string]string `json:"matchLabels"`
 }
 
 type PersesProbe struct {
@@ -139,12 +163,32 @@ type PersesConfigSecurity struct {
 	Readonly       bool                       `json:"readonly"`
 	EnableAuth     bool                       `json:"enable_auth"`
 	Authentication PersesConfigAuthentication `json:"authentication"`
-	Cookie         PersesConfigCookie         `json:"cookie"`
+	// +optional
+	Authorization PersesConfigAuthorization `json:"authorization"`
+	Cookie        PersesConfigCookie        `json:"cookie"`
+}
+
+type PersesConfigAuthorization struct {
+	// +optional
+	GuestPermissions []PersesGuestPermission `json:"guest_permissions"`
+}
+
+type PersesGuestPermission struct {
+	// +optional
+	Actions []string `json:"actions"`
+	// +optional
+	Scopes []string `json:"scopes"`
 }
 
 type PersesConfigAuthentication struct {
-	AccessTokenTTL  string `json:"access_token_ttl"`
-	RefreshTokenTTL string `json:"refresh_token_ttl"`
+	// +optional
+	Providers       PersesConfigAuthenticationProviders `json:"providers"`
+	AccessTokenTTL  string                              `json:"access_token_ttl"`
+	RefreshTokenTTL string                              `json:"refresh_token_ttl"`
+}
+
+type PersesConfigAuthenticationProviders struct {
+	EnableNative bool `json:"enable_native"`
 }
 
 type PersesConfigCookie struct {
@@ -156,6 +200,15 @@ type PersesConfigFrontend struct {
 	Explorer PersesConfigFrontendExplorer `json:"explorer"`
 	//+optional
 	Information string `json:"information"`
+	//+optional
+	ImportantDashboards []PersesImportantDashboard `json:"important_dashboards"`
+}
+
+type PersesImportantDashboard struct {
+	//+optional
+	Project string `json:"project"`
+	//+optional
+	Dashboard string `json:"dashboard"`
 }
 
 type PersesConfigFrontendExplorer struct {
@@ -213,7 +266,7 @@ type PersesSidecarImage struct {
 type PersesPersistence struct {
 	Enabled bool `json:"enabled"`
 	//+optional
-	StorageClass string `json:"storageClass"`
+	StorageClass string `json:"storageClass,omitempty"`
 	//+optional
 	AccessModes []string `json:"accessModes"`
 	Size        string   `json:"size"`
@@ -264,6 +317,20 @@ type PersesTLSCert struct {
 	//+optional
 	SecretName string `json:"secretName"`
 	MountPath  string `json:"mountPath"`
+}
+
+type PersesTestFramework struct {
+	Enabled bool                     `json:"enabled"`
+	Image   PersesTestFrameworkImage `json:"image"`
+	//+optional
+	ImagePullPolicy string `json:"imagePullPolicy"`
+}
+
+type PersesTestFrameworkImage struct {
+	//+optional
+	Registry   string `json:"registry"`
+	Repository string `json:"repository"`
+	Tag        string `json:"tag"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

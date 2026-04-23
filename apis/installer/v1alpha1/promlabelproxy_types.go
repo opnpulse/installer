@@ -17,7 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
+	catgwapi "go.bytebuilders.dev/catalog/api/gateway/v1alpha1"
 	core "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kmodules.xyz/resource-metadata/apis/shared"
 )
@@ -73,15 +75,38 @@ type PromLabelProxySpec struct {
 	//+optional
 	NodeSelector map[string]string `json:"nodeSelector"`
 	// +optional
-	Tolerations   []core.Toleration           `json:"tolerations"`
-	Ingress       PromLabelProxyIngress       `json:"ingress"`
-	Config        PromLabelProxyConfig        `json:"config"`
-	Metrics       PromLabelProxyMetrics       `json:"metrics"`
-	KubeRBACProxy PromLabelProxyKubeRBACProxy `json:"kubeRBACProxy"`
-	Clickhouse    PromLabelProxyClickhouse    `json:"clickhouse"`
-	Infra         PromLabelProxyInfra         `json:"infra"`
+	Tolerations []core.Toleration `json:"tolerations"`
+	// +optional
+	LivenessProbe PromLabelProxyProbe `json:"livenessProbe"`
+	// +optional
+	ReadinessProbe PromLabelProxyProbe           `json:"readinessProbe"`
+	Ingress        PromLabelProxyIngress         `json:"ingress"`
+	Config         PromLabelProxyConfig          `json:"config"`
+	Metrics        PromLabelProxyMetrics         `json:"metrics"`
+	KubeRBACProxy  PromLabelProxyKubeRBACProxy   `json:"kubeRBACProxy"`
+	Infra          catgwapi.ServiceProviderInfra `json:"infra"`
+	// +optional
+	Platform PromLabelProxyPlatform `json:"platform"`
 	// +optional
 	Distro shared.DistroSpec `json:"distro"`
+	// +optional
+	ExtraManifests *apiextensionsv1.JSON `json:"extraManifests"`
+}
+
+type PromLabelProxyProbe struct {
+	// +optional
+	HttpGet PromLabelProxyProbeHttpGet `json:"httpGet"`
+}
+
+type PromLabelProxyProbeHttpGet struct {
+	Path   string `json:"path"`
+	Port   string `json:"port"`
+	Scheme string `json:"scheme"`
+}
+
+type PromLabelProxyPlatform struct {
+	//+optional
+	BaseURL string `json:"baseURL"`
 }
 
 type PromLabelProxyImage struct {
@@ -155,15 +180,43 @@ type PromLabelProxyServiceMonitor struct {
 	//+optional
 	JobLabel string `json:"jobLabel"`
 	//+optional
+	TargetLabels []string `json:"targetLabels"`
+	//+optional
+	PodTargetLabels []string `json:"podTargetLabels"`
+	//+optional
+	SampleLimit int32 `json:"sampleLimit"`
+	//+optional
+	TargetLimit int32 `json:"targetLimit"`
+	//+optional
+	LabelLimit int32 `json:"labelLimit"`
+	//+optional
+	LabelNameLengthLimit int32 `json:"labelNameLengthLimit"`
+	//+optional
+	LabelValueLengthLimit int32 `json:"labelValueLengthLimit"`
+	HonorLabels           bool  `json:"honorLabels"`
+	// +optional
+	HonorTimestamps *bool `json:"honorTimestamps"`
+	//+optional
 	Interval string `json:"interval"`
 	//+optional
 	ScrapeTimeout string `json:"scrapeTimeout"`
-	HonorLabels   bool   `json:"honorLabels"`
+	// +optional
+	AttachMetadata *apiextensionsv1.JSON `json:"attachMetadata"`
+	// +optional
+	Relabelings *apiextensionsv1.JSON `json:"relabelings"`
+	// +optional
+	MetricRelabelings *apiextensionsv1.JSON `json:"metricRelabelings"`
+	// +optional
+	AdditionalConfigs *apiextensionsv1.JSON `json:"additionalConfigs"`
+	// +optional
+	AdditionalEndpointConfigs *apiextensionsv1.JSON `json:"additionalEndpointConfigs"`
 }
 
 type PromLabelProxyKubeRBACProxy struct {
-	Enabled bool                `json:"enabled"`
-	Image   PromLabelProxyImage `json:"image"`
+	Enabled bool `json:"enabled"`
+	// +optional
+	Config *apiextensionsv1.JSON `json:"config"`
+	Image  PromLabelProxyImage   `json:"image"`
 	//+optional
 	ExtraArgs []string `json:"extraArgs"`
 	Port      int32    `json:"port"`
@@ -171,42 +224,8 @@ type PromLabelProxyKubeRBACProxy struct {
 	ContainerSecurityContext *core.SecurityContext `json:"containerSecurityContext"`
 	// +optional
 	Resources core.ResourceRequirements `json:"resources"`
-}
-
-type PromLabelProxyClickhouse struct {
-	Enabled        bool   `json:"enabled"`
-	Version        string `json:"version"`
-	DeletionPolicy string `json:"deletionPolicy"`
-	DeploymentMode string `json:"deploymentMode"`
 	// +optional
-	TLS PromLabelProxyClickhouseTLS `json:"tls"`
-	// +optional
-	Storage PromLabelProxyStorage `json:"storage"`
-	// +optional
-	S3 PromLabelProxyClickhouseS3 `json:"s3"`
-}
-
-type PromLabelProxyClickhouseTLS struct {
-	// +optional
-	ClientCaCertificateRefs []PromLabelProxyClickhouseCertRef `json:"clientCaCertificateRefs"`
-}
-
-type PromLabelProxyClickhouseCertRef struct {
-	Name string `json:"name"`
-	Key  string `json:"key"`
-}
-
-type PromLabelProxyClickhouseS3 struct {
-	//+optional
-	Endpoint string `json:"endpoint"`
-	//+optional
-	AccessKeyId string `json:"accessKeyId"`
-	//+optional
-	SecretAccessKey string `json:"secretAccessKey"`
-	//+optional
-	Region string `json:"region"`
-	//+optional
-	SkipVerify int32 `json:"skipVerify"`
+	VolumeMounts []core.VolumeMount `json:"volumeMounts"`
 }
 
 type PromLabelProxyStorage struct {
@@ -216,43 +235,6 @@ type PromLabelProxyStorage struct {
 	AccessModes []string `json:"accessModes"`
 	// +optional
 	Resources core.ResourceRequirements `json:"resources"`
-}
-
-type PromLabelProxyInfra struct {
-	Host             string                 `json:"host"`
-	HostType         string                 `json:"hostType"`
-	TLS              PromLabelProxyInfraTLS `json:"tls"`
-	DNS              PromLabelProxyInfraDNS `json:"dns"`
-	GatewayClassName string                 `json:"gatewayClassName"`
-}
-
-type PromLabelProxyInfraTLS struct {
-	Issuer      string                     `json:"issuer"`
-	Ca          PromLabelProxyInfraTLSCa   `json:"ca"`
-	Acme        PromLabelProxyInfraTLSAcme `json:"acme"`
-	Certificate PromLabelProxyInfraTLSCert `json:"certificate"`
-}
-
-type PromLabelProxyInfraTLSCa struct {
-	Cert string `json:"cert"`
-	Key  string `json:"key"`
-}
-
-type PromLabelProxyInfraTLSAcme struct {
-	Email       string `json:"email"`
-	Solver      string `json:"solver"`
-	GatewayName string `json:"gatewayName"`
-}
-
-type PromLabelProxyInfraTLSCert struct {
-	Cert string `json:"cert"`
-	Key  string `json:"key"`
-}
-
-type PromLabelProxyInfraDNS struct {
-	Provider string `json:"provider"`
-	//+optional
-	Auth map[string]string `json:"auth"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
