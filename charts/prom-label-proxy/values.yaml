@@ -2,7 +2,7 @@
 replicaCount: 1
 
 image:
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   # -- prom-label-proxy image registry
   repository: quay.io/prometheuscommunity/prom-label-proxy
   # -- prom-label-proxy image tag (immutable tags are recommended).
@@ -59,12 +59,14 @@ livenessProbe:
     # -- This is the liveness check endpoint
     path: /healthz
     port: http
+    scheme: HTTPS
 
 readinessProbe:
   httpGet:
     # -- This is the readiness check endpoint
     path: /healthz
     port: http
+    scheme: HTTPS
 
 resources:
   # -- The resources limits for the prom-label-proxy container
@@ -295,7 +297,7 @@ extraManifests: null
   #     templated: '{{ print "foobar" | upper | b64enc }}'
 
 clickhouse:
-  enabled: false
+  enabled: true
   # Global ClickHouse version and deletion policy
   version: 24.4.1
   deletionPolicy: WipeOut
@@ -385,6 +387,9 @@ infra:
     provider: "external" # external,cloudflare,route53,cloudDNS
     auth: {}
   gatewayClassName: "ace"
+
+platform:
+  baseURL: ""
 
 distro:
   openshift: false

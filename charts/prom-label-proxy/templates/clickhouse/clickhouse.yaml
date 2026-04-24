@@ -2,7 +2,7 @@
 apiVersion: kubedb.com/v1alpha2
 kind: ClickHouse
 metadata:
-  name: {{ include "prom-label-proxy.fullname" . }}-clickhouse
+  name: monitoring-clickhouse
   namespace: {{ template "prom-label-proxy.namespace" . }}
 spec:
   version: {{ .Values.clickhouse.version | quote }}
@@ -47,7 +47,7 @@ spec:
   {{- end }}
   {{- if .Values.clickhouse.s3.endpoint }}      
   configuration:
-    secretName: {{ include "prom-label-proxy.fullname" . }}-clickhouse-storage-config
+    secretName: monitoring-clickhouse-storage-config
   {{- end }}
   storage:
     {{- if .Values.clickhouse.storage.storageClassName }}

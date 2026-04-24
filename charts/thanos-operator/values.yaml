@@ -13,7 +13,7 @@ manager:
 
   image:
     repository: quay.io/thanos/thanos-operator
-    tag: main-2025-10-23-e28d488
+    tag: main
     pullPolicy: IfNotPresent
 
   ## Arguments
@@ -21,14 +21,14 @@ manager:
   args:
     - --leader-elect
     - --metrics-secure
-    - --zap-encoder=console
-    - --zap-log-level=debug
-  #    - --log.format=logfmt
-  #    - --log.level=debug
-  #    - --enable-feature=service-monitor
-  #    - --enable-feature=prometheus-rule
-  #    - --enable-feature=kube-resource-sync
-  #    - --enable-feature=otel-sidecar
+    - --log.format=logfmt
+    - --log.level=debug
+    - --enable-feature=service-monitor
+    - --enable-feature=prometheus-rule
+    - --enable-feature=kube-resource-sync
+#    - --enable-feature=otel-sidecar
+  #    - --zap-encoder=console
+  #    - --zap-log-level=debug
 
   ## Environment variables
   ##
