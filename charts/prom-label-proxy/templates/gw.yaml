@@ -15,6 +15,11 @@ spec:
           - kind: Secret
             name: {{ include "prom-label-proxy.name" . }}-gw-cert
             namespace: {{ template "prom-label-proxy.namespace" . }}
+    - name: mtls
+      port: 8443
+      protocol: TLS
+      tls:
+        mode: Passthrough
 
 ---
 
@@ -36,9 +41,9 @@ spec:
         - path:
             type: PathPrefix
             value: /telemetry
-        - path:
-            type: PathPrefix
-            value: /api/v1
+{{/*        - path:*/}}
+{{/*            type: PathPrefix*/}}
+{{/*            value: /api/v1*/}}
       backendRefs:
         - name: {{ include "prom-label-proxy.name" . }}
           port: 8080
@@ -61,3 +66,22 @@ spec:
         kind: Secret
         name: otel-client-cert
     hostname: {{ include "prom-label-proxy.name" . }}.{{ template "prom-label-proxy.namespace" . }}.svc.cluster.local
+
+---
+
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TLSRoute
+metadata:
+  name: prom-label-proxy-mtls-route
+  namespace: monitoring
+spec:
+  parentRefs:
+    - name: prom-label-proxy-gw
+      namespace: monitoring
+      sectionName: mtls
+  hostnames:
+    - {{ include "prom-label-proxy.name" . }}.{{ template "prom-label-proxy.namespace" . }}.svc.cluster.local
+  rules:
+    - backendRefs:
+        - name: {{ include "prom-label-proxy.fullname" . }}-passthrough
+          port: 8080

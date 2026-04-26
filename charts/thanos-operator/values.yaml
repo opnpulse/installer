@@ -26,7 +26,7 @@ manager:
     - --enable-feature=service-monitor
     - --enable-feature=prometheus-rule
     - --enable-feature=kube-resource-sync
-#    - --enable-feature=otel-sidecar
+  #    - --enable-feature=otel-sidecar
   #    - --zap-encoder=console
   #    - --zap-log-level=debug
 
@@ -111,6 +111,25 @@ certManager:
 ##
 prometheus:
   enable: false
+
+## ThanosRuler configuration.
+##
+thanosRuler:
+  enabled: false
+  storage:
+    size: 2Gi
+  additionalVolumeMounts: []
+  # - mountPath: /etc/thanos/certs
+  #   name: thanos-certs
+  #   readOnly: true
+  additionalVolumes: []
+  # - name: thanos-certs
+  #   secret:
+  #     secretName: tls-ssl-minio
+  #     items:
+  #       - key: public.crt
+  #         path: public.crt
+  queryURL: http://thanos-operator-query.monitoring.svc.cluster.local:9090
 
 ## S3-compatible object storage configuration for Thanos.
 ## When enabled, creates the thanos-object-storage-secret.

@@ -1,0 +1,40 @@
+{{- if .Values.thanosRuler.enabled }}
+apiVersion: monitoring.thanos.io/v1alpha1
+kind: ThanosRuler
+metadata:
+  name: {{ .Release.Name }}-ruler
+  namespace: {{ .Release.Namespace }}
+spec:
+  additionalArgs:
+  - --query={{ .Values.thanosRuler.queryURL }}
+  {{- if .Values.thanosRuler.additionalVolumeMounts }}
+  additionalVolumeMounts:
+    {{- toYaml .Values.thanosRuler.additionalVolumeMounts | nindent 4 }}
+  {{- end }}
+  {{- if .Values.thanosRuler.additionalVolumes }}
+  additionalVolumes:
+    {{- toYaml .Values.thanosRuler.additionalVolumes | nindent 4 }}
+  {{- end }}
+  alertmanagerURL: http://thanos-operator-alertmanager.monitoring.svc.cluster.local:9093
+  evaluationInterval: 1m
+  externalLabels:
+    rule_replica: $(NAME)
+  imagePullPolicy: IfNotPresent
+  logFormat: logfmt
+  objectStorageConfig:
+    key: thanos.yaml
+    name: thanos-object-storage-secret
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Delete
+    whenScaled: Delete
+  podDisruptionBudgetConfig:
+    enable: true
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  retention: 2h
+  ruleConfigSelector:
+    matchLabels:
+      operator.thanos.io/prometheus-rule: "true"
+  storage:
+    size: {{ .Values.thanosRuler.storage.size | quote }}
+{{- end }}

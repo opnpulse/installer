@@ -12,3 +12,8 @@ keywords:
 
 annotations:
   kubebuilder.io/generated-by: kubebuilder
+
+dependencies:
+  - name: alertmanager
+    version: 1.35.0
+    repository: https://prometheus-community.github.io/helm-charts
