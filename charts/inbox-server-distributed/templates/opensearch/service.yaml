@@ -1,0 +1,24 @@
+{{ if .Values.opensearch.enabled }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "inbox-server-distributed.fullname" . }}-opensearch
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: opensearch
+    {{- include "inbox-server-distributed.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: "9200"
+      port: 9200
+      targetPort: 9200
+    - name: "9300"
+      port: 9300
+      targetPort: 9300
+  selector:
+    app.kubernetes.io/component: opensearch
+    {{- include "inbox-server-distributed.selectorLabels" . | nindent 4 }}
+
+{{ end }}

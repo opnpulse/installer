@@ -1,0 +1,12 @@
+---
+apiVersion: v2
+description: Inbox Agent by AppsCode
+name: inbox-agent
+version: v2025.12.15
+appVersion: v0.0.5
+home: https://github.com/ops-center
+icon: https://cdn.appscode.com/images/products/searchlight/searchlight-512x512.png
+sources: [https://github.com/ops-center]
+maintainers:
+  - name: appscode
+    email: support@appscode.com

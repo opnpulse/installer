@@ -36,5 +36,4 @@ _testmain.go
 /.crds
 .DS_Store
 
-/charts/kube-ui-server/charts
-/charts/panopticon/charts
+/charts/appscode-otel-stack/charts

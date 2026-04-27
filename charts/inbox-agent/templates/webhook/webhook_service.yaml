@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "inbox-agent.webhookServiceName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "inbox-agent.labels" . | nindent 4 }}
+spec:
+  selector:
+    app.kubernetes.io/component: webhook-server
+    {{- include "inbox-agent.selectorLabels" . | nindent 4 }}
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 9443

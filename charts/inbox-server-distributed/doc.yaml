@@ -1,0 +1,18 @@
+---
+project:
+  name: Inbox Server by AppsCode
+  shortName: Inbox Server
+  url: https://github.com/ops-center/james-project
+  description: Inbox Server by AppsCode
+  app: Inbox Server
+repository:
+  url: https://charts.appscode.com/stable/
+  name: appscode
+chart:
+  name: inbox-server-distributed
+  values: -- generate from values file --
+  valuesExample: -- generate from values file --
+prerequisites: [Kubernetes 1.21+]
+release:
+  name: inbox-server-distributed
+  namespace: monitoring
