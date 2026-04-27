@@ -4,10 +4,10 @@ replicaCount: 1
 image:
   pullPolicy: Always
   # -- prom-label-proxy image registry
-  repository: quay.io/prometheuscommunity/prom-label-proxy
+  repository: ghcr.io/opnpulse/prom-label-proxy
   # -- prom-label-proxy image tag (immutable tags are recommended).
   # @default -- `.Chart.AppVersion`
-  tag: ""
+  tag: "v2026.4.24"
 
 # -- registry secret names as an array
 imagePullSecrets: []

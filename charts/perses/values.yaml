@@ -12,10 +12,10 @@ fullnameOverride: ""
 ##
 image:
   # -- Perses image repository and name
-  name: "rokibulhasan114/perses"
+  name: "ghcr.io/opnpulse/perses"
 
   # -- Overrides the image tag whose default is the chart appVersion.
-  version: "v0.0.1"
+  version: "v2026.4.24"
 
   # -- Default image pull policy
   pullPolicy: Always

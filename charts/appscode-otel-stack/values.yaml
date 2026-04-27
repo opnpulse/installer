@@ -1,20 +1,26 @@
 clusterName: ace
 
 opentelemetry-operator:
+  admissionWebhooks:
+    certManager:
+      enabled: false
   manager:
     featureGatesMap:
       operator.targetallocator.mtls: true
     createRbacPermissions: true
+admissionWebhooks:
+  autoGenerateCert:
+    enabled: true
 
 collectors:
   daemon:
     resources:
       limits:
         cpu: 500m
-        memory: 1Gi
+        memory: 2Gi
       requests:
         cpu: 200m
-        memory: 512Mi
+        memory: 1Gi
     env:
       - name: K8S_NODE_NAME
         valueFrom:
@@ -49,10 +55,15 @@ collectors:
         debug:
           verbosity: detailed
       processors:
+        attributes/node:
+          actions:
+            - key: node
+              value: "${K8S_NODE_NAME}"
+              action: upsert
         memory_limiter:
           check_interval: 1s
           limit_percentage: 75
-          spike_limit_percentage: 20
+          spike_limit_percentage: 15
         k8sattributes:
           extract:
             metadata:
@@ -62,14 +73,14 @@ collectors:
                 key: ace.appscode.com/client-org
                 from: namespace
         batch:
-          send_batch_size: 256
-          send_batch_max_size: 512
-          timeout: 5s
+          send_batch_size: 512
+          send_batch_max_size: 1024
+          timeout: 20s
       service:
         pipelines:
           metrics:
             receivers: [ prometheus ]
-            processors: [ memory_limiter, k8sattributes, batch ]
+            processors: [ memory_limiter, k8sattributes, attributes/node, batch ]
             exporters: [ otlp ]
           traces:
             receivers: [ otlp ]
@@ -90,6 +101,10 @@ collectors:
         enabled: true
 
   cluster:
+    hostAliases:
+      - ip: "10.2.0.187"
+        hostnames:
+          - "prom-label-proxy.monitoring.svc.cluster.local"
     resources:
       limits:
         cpu: 500m
@@ -184,7 +199,9 @@ collectors:
         debug:
           verbosity: detailed
         prometheusremotewrite:
-          endpoint: "https://10.2.0.187/api/v1/receive"
+          #          endpoint: "https://10.2.0.187:8443/api/v1/receive"
+          endpoint: "https://prom-label-proxy.monitoring.svc.cluster.local:8443/api/v1/receive"
+          timeout: 30s
           auth:
             authenticator: headers_setter
           target_info:
@@ -194,8 +211,17 @@ collectors:
             cert_file: /etc/certs/tls.crt
             key_file: /etc/certs/tls.key
             insecure_skip_verify: false
+          retry_on_failure:
+            enabled: true
+            initial_interval: 5s
+            max_interval: 30s
+            max_elapsed_time: 120s
+          remote_write_queue:
+            queue_size: 200
+            num_consumers: 5
         clickhouse:
-          endpoint: "https://10.2.0.187/?database=default&secure=true"
+          #          endpoint: "https://10.2.0.187:8443/?database=default&secure=true"
+          endpoint: "https://prom-label-proxy.monitoring.svc.cluster.local:8443/?database=default&secure=true"
           username: "ace"
           password: "QEFNeAa7hUGjJjVY"
           database: "default"
@@ -208,12 +234,12 @@ collectors:
           logs_table_name: otel_logs
           timeout: 10s
           sending_queue:
-            queue_size: 1000
+            queue_size: 200
           retry_on_failure:
             enabled: true
             initial_interval: 5s
             max_interval: 30s
-            max_elapsed_time: 300s
+            max_elapsed_time: 120s
         otlp:
           endpoint: opentelemetry-kube-stack-gateway-collector.monitoring.svc.cluster.local:4317
           tls:

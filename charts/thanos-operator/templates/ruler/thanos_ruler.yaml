@@ -6,7 +6,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   additionalArgs:
-  - --query={{ .Values.thanosRuler.queryURL }}
+  {{- range .Values.thanosRuler.additionalArgs }}
+    - {{ . }}
+  {{- end }}
   {{- if .Values.thanosRuler.additionalVolumeMounts }}
   additionalVolumeMounts:
     {{- toYaml .Values.thanosRuler.additionalVolumeMounts | nindent 4 }}

@@ -60,7 +60,9 @@ type ThanosRulerSpec struct {
 	Enabled bool               `json:"enabled"`
 	Storage ThanosRulerStorage `json:"storage"`
 	//+optional
-	QueryURL string `json:"queryURL"`
+	AdditionalArgs []string `json:"additionalArgs"`
+	//+optional
+	MonitoringClusterBaseURL string `json:"monitoringClusterBaseURL"`
 	// +optional
 	AdditionalVolumeMounts []core.VolumeMount `json:"additionalVolumeMounts"`
 	// +optional
@@ -72,7 +74,6 @@ type ThanosRulerStorage struct {
 }
 
 type ThanosObjectStorage struct {
-	Enabled bool `json:"enabled"`
 	//+optional
 	Bucket string `json:"bucket"`
 	//+optional
@@ -83,6 +84,8 @@ type ThanosObjectStorage struct {
 	SecretKey string `json:"secretKey"`
 	//+optional
 	Prefix string `json:"prefix"`
+	//+optional
+	Region string `json:"region"`
 }
 
 type ThanosOperatorManager struct {

@@ -12,8 +12,8 @@ manager:
   replicas: 1
 
   image:
-    repository: quay.io/thanos/thanos-operator
-    tag: main
+    repository: ghcr.io/opnpulse/thanos-operator
+    tag: v2026.4.24
     pullPolicy: IfNotPresent
 
   ## Arguments
@@ -118,6 +118,9 @@ thanosRuler:
   enabled: false
   storage:
     size: 2Gi
+  additionalArgs: []
+  # - --query.config-file=/etc/ruler/query.yaml
+  # - --remote-write.config-file=/etc/ruler-rw/remote-write.yaml
   additionalVolumeMounts: []
   # - mountPath: /etc/thanos/certs
   #   name: thanos-certs
@@ -129,7 +132,7 @@ thanosRuler:
   #     items:
   #       - key: public.crt
   #         path: public.crt
-  queryURL: http://thanos-operator-query.monitoring.svc.cluster.local:9090
+  monitoringClusterBaseURL: ""
 
 ## S3-compatible object storage configuration for Thanos.
 ## When enabled, creates the thanos-object-storage-secret.

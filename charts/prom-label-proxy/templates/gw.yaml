@@ -16,7 +16,7 @@ spec:
             name: {{ include "prom-label-proxy.name" . }}-gw-cert
             namespace: {{ template "prom-label-proxy.namespace" . }}
     - name: mtls
-      port: 8443
+      port: 10001
       protocol: TLS
       tls:
         mode: Passthrough
@@ -41,9 +41,6 @@ spec:
         - path:
             type: PathPrefix
             value: /telemetry
-{{/*        - path:*/}}
-{{/*            type: PathPrefix*/}}
-{{/*            value: /api/v1*/}}
       backendRefs:
         - name: {{ include "prom-label-proxy.name" . }}
           port: 8080
@@ -81,7 +78,10 @@ spec:
       sectionName: mtls
   hostnames:
     - {{ include "prom-label-proxy.name" . }}.{{ template "prom-label-proxy.namespace" . }}.svc.cluster.local
+    {{- if eq .Values.infra.hostType "domain" }}
+    - {{ .Values.infra.host }}
+    {{- end }}
   rules:
-    - backendRefs:
-        - name: {{ include "prom-label-proxy.fullname" . }}-passthrough
-          port: 8080
+  - backendRefs:
+    - name: {{ include "prom-label-proxy.fullname" . }}-passthrough
+      port: 8080
