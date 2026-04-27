@@ -1,0 +1,122 @@
+---
+# Default values for inbox-agent.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+# Overrides name template
+nameOverride: ''
+# Overrides fullname template
+fullnameOverride: ''
+dns:
+  ## Default domain for all emailing components
+  # jmapUrl: "jmap.example.com"
+  # adminUrl: "admin.example.com"
+  # smtpHostname: "smtp.example.com"
+  domain: ''
+  # in ip mode, the emailDomain is ace.internal, otherwise same as domain
+  emailDomain: ''
+  targetIPs: []
+# Default values for james
+james:
+  replicaJmapInstanceCount: 1
+  replicaImapSmtpInstanceCount: 0
+  image: ghcr.io/appscode/inbox-server:postgres-latest
+  ## Environment for James
+  env:
+    jamesMessageSize: 25M
+    jamesDkimSignSmtp: dkimselector
+    jamesDkimSignDomain: mail.example.com
+    jamesKeyStorePassword: james72laBalle
+    jamesHELOMessage: change-me
+    jvmOpts: -Xms3g -Xmx3g
+    glowroot:
+      enabled: false
+    jamesResources:
+      limits:
+        cpu: '2'
+        memory: 4Gi
+      requests:
+        cpu: 150m
+        memory: 512Mi
+  secret:
+    jwtPublicKey: ''
+    jwtPrivateKey: ''
+    adminJWTPublicKey: ''
+    dkimPrivateKey: ''
+  tls:
+    # secretName: the-name-of-a-secret
+    secretName: ''
+# Requires Prometheus Operator to be installed
+serviceMonitor:
+  enabled: true
+  # Labels for Prometheus Operator to detect ServiceMonitor. Cannot be empty
+  additionalLabels:
+    release: kube-prometheus-stack
+  # Scrape interval. Use Prometheus default value if not specified
+  interval: 30s
+ingress:
+  enabled: false
+  className: ''
+  annotations: {}
+  # kubernetes.io/ingress.class: nginx
+  # kubernetes.io/tls-acme: "true"
+  # cert-manager.io/cluster-issuer: name-of-the-cluster-issuer
+  tls:
+    secretName: the-name-of-a-secret
+adminIngress:
+  enabled: false
+  className: ''
+  annotations: {}
+  # kubernetes.io/ingress.class: nginx
+  # kubernetes.io/tls-acme: "true"
+  # cert-manager.io/cluster-issuer: name-of-the-cluster-issuer
+  tls:
+    secretName: the-name-of-a-secret
+postgresql:
+  ## @param postgresql.enabled enable the bitnami/postgresql subchart and deploy Postgres
+  enabled: false
+  auth:
+    secretName: ''
+    username: james
+    password: secret1
+    database: james
+  external:
+    addr: ''
+migrate:
+  # Docker registry containing app image
+  image:
+    repository: ghcr.io/appscode-images/postgres
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: 16.4-alpine
+    pullPolicy: Always
+  podAnnotations: {}
+  podSecurityContext: {}
+  # fsGroup: 2000
+  securityContext:  # +doc-gen:break
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: [ALL]
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+distro:
+  # Set true, if installed in OpenShift
+  openshift: false
+  # Set operator or all to use ubi images
+  ubi: ""

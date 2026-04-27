@@ -1,0 +1,190 @@
+---
+# Default values for inbox-agent.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+# Overrides name template
+nameOverride: ''
+# Overrides fullname template
+fullnameOverride: ''
+dns:
+  ## Default domain for all emailing components
+  # jmapUrl: "jmap.example.com"
+  # adminUrl: "admin.example.com"
+  # smtpHostname: "smtp.example.com"
+  domain: ''
+  # in ip mode, the emailDomain is ace.internal, otherwise same as domain
+  emailDomain: ''
+  targetIPs: []
+# Default values for james
+james:
+  replicaJmapInstanceCount: 1
+  replicaImapSmtpInstanceCount: 0
+  image: ghcr.io/appscode/inbox-server:latest
+  secret:
+    jwtPublicKey: ''
+    jwtPrivateKey: ''
+    adminJWTPublicKey: ''
+    dkimPrivateKey: ''
+  ## Environment for James
+  env:
+    jamesCassandraKeyspace: sandbox_james
+    jamesCassandraCacheKeyspace: sandbox_james_cache
+    jamesEsMailboxIndex: mailbox_v1
+    jamesEsClusterName: change-me
+    jamesEsHostScheme: http
+    jamesEsSslValidationStrategy: default
+    jamesEsHostNameVerifier: default
+    jamesEsNbShards: 5
+    jamesEsNbReplica: 1
+    jamesEsMailboxReadAlias: read-mailbox
+    jamesEsMailboxWriteAlias: write-mailbox
+    jamesRabbitHost: inbox-server-distributed-rabbitmq
+    jamesMessageSize: 25M
+    jamesDkimSignSmtp: dkimselector
+    jamesDkimSignDomain: mail.example.com
+    cassandraReplicationFactor: 1
+    jamesKeyStorePassword: james72laBalle
+    jamesHELOMessage: change-me
+    jvmOpts: -Xms3g -Xmx3g
+    glowroot:
+      enabled: false
+    jamesResources:
+      limits:
+        cpu: '2'
+        memory: 4Gi
+      requests:
+        cpu: '1'
+        memory: 4Gi
+  tls:
+    # secretName: the-name-of-a-secret
+    secretName: ''
+# Requires Prometheus Operator to be installed
+serviceMonitor:
+  enabled: false
+  # Labels for Prometheus Operator to detect ServiceMonitor. Cannot be empty
+  additionalLabels:
+    change-me: change-me
+  # Scrape interval. Use Prometheus default value if not specified
+  interval: 30s
+ingress:
+  enabled: false
+  className: ''
+  annotations: {}
+  # kubernetes.io/ingress.class: nginx
+  # kubernetes.io/tls-acme: "true"
+  # cert-manager.io/cluster-issuer: name-of-the-cluster-issuer
+  tls:
+    secretName: the-name-of-a-secret
+adminIngress:
+  enabled: false
+  className: ''
+  annotations: {}
+  # kubernetes.io/ingress.class: nginx
+  # kubernetes.io/tls-acme: "true"
+  # cert-manager.io/cluster-issuer: name-of-the-cluster-issuer
+  tls:
+    secretName: the-name-of-a-secret
+###
+# Please refer to the values.yaml from the Helm package for databases
+# for a better explanation of the Cassandra parameters.
+###
+cassandra:
+  image:
+    repository: cassandra
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: 4.1.3
+  livenessProbe:
+    exec:
+      command: [cqlsh, -e, describe keyspaces]
+    failureThreshold: 5
+    periodSeconds: 3
+    timeoutSeconds: 20
+  secret:
+    username: ''
+    password: ''
+# readinessProbe
+# resources
+# podSecurityContext ?
+# securityContext ?
+# volumes
+# volumeMounts
+#
+###
+# Please refer to the values.yaml from the Helm package for databases
+# for a better explanation of the Elastic Search parameters.
+###
+opensearch:
+  enabled: true
+  image:
+    repository: opensearchproject/opensearch
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: 2.1.0
+  secret:
+    username: ''
+    password: ''
+# livenessProbe
+# readinessProbe
+# resources
+# podSecurityContext ?
+# securityContext ?
+# volumes
+# volumeMounts
+rabbitmq:
+  image:
+    repository: rabbitmq
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: 3.12.1-management
+  secret:
+    username: ''
+    password: ''
+# livenessProbe
+# readinessProbe
+# resources
+# podSecurityContext ?
+# securityContext ?
+# volumes
+# volumeMounts
+s3:
+  enabled: false
+  image:
+    repository: ghcr.io/appscode/cloudserver
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: 8.8.20
+  endpoint: ''
+  region: ''
+  accessKeyId: ''
+  secretKey: ''
+  # livenessProbe
+  # readinessProbe
+  # resources
+  # podSecurityContext ?
+  # securityContext ?
+  # volumes
+  # volumeMounts
+tika:
+  enabled: false
+  image:
+    repository: apache/tika
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: 2.8.0.0
+# livenessProbe
+# readinessProbe
+# resources
+# podSecurityContext ?
+# securityContext ?
+# volumes
+# volumeMounts
+service:
+  type: ClusterIP
+  # port: 80
+
+distro:
+  # Set true, if installed in OpenShift
+  openshift: false
+  # Set operator or all to use ubi images
+  ubi: ""

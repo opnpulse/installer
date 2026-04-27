@@ -1,0 +1,21 @@
+{{- if .Values.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "inbox-server-distributed.fullname" . }}-service-monitor
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- toYaml .Values.serviceMonitor.additionalLabels | nindent 4 }}
+spec:
+  jobLabel: jobLabel
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: james
+      {{- include "inbox-server-distributed.labels" . | nindent 8 }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+  - port: web
+    path: /metrics
+{{- end }}

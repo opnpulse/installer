@@ -1,0 +1,418 @@
+{{- $opensearchUrl := include "opensearch.url.list" . }}
+{{- $cassandraUrl := include "cassandra.url.list" . }}
+{{- $jamesOpts := include "inbox-server-distributed.jvmOpts" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "inbox-server-distributed.fullname" . }}-jmap
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: jmap
+    {{- include "inbox-server-distributed.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: jmap
+      {{- include "inbox-server-distributed.labels" . | nindent 6 }}
+  replicas: {{ .Values.james.replicaJmapInstanceCount }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: james
+        app.kubernetes.io/component: jmap
+        {{- include "inbox-server-distributed.labels" . | nindent 8 }}
+    spec:
+    {{- if .Values.dockerCredentials }}
+      imagePullSecrets:
+      - name: docker-registry-secret
+    {{- end }}
+      # affinity:
+      #   podAntiAffinity:
+      #     preferredDuringSchedulingIgnoredDuringExecution:
+      #     - weight: 100
+      #       podAffinityTerm:
+      #         labelSelector:
+      #           matchExpressions:
+      #           - key: app
+      #             operator: In
+      #             values:
+      #             - james
+      #         topologyKey: "kubernetes.io/hostname"
+
+      containers:
+      - name: james-jmap
+        image: {{ .Values.james.image }}
+        args:
+          - --generate-keystore
+        # readinessProbe:
+        #   httpGet:
+        #     path: /healthcheck/checks/Guice%20application%20lifecycle
+        #     port: 8000
+        #   initialDelaySeconds: 60
+        #   periodSeconds: 10
+        # livenessProbe:
+        #   httpGet:
+        #     path: /healthcheck/checks/Guice%20application%20lifecycle
+        #     port: 8000
+        #   initialDelaySeconds: 91
+        #   periodSeconds: 30
+        envFrom:
+          - secretRef:
+              name: {{ include "inbox-server-distributed.fullname" . }}-s3-auth
+        env:
+        - name: ELASTICSEARCH_INIT_TIMEOUT
+          value: "120"
+        - name: JAMES_IMAP_SMTP_ENABLED
+          value: "false"
+        - name: JAMES_JMAP_ENABLED
+          value: "true"
+        - name: JAMES_CASSANDRA_NODES_URLS
+          value: "{{ $cassandraUrl | trimSuffix "," }}"
+        - name: JAMES_CASSANDRA_REPLICATION_FACTOR
+          value: "{{ .Values.james.env.cassandraReplicationFactor }}"
+        - name: JAMES_KEYSTORE_PASSWORD
+          value: "{{ .Values.james.env.jamesKeyStorePassword }}"
+        - name: JAMES_CASSANDRA_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "inbox-server-distributed.fullname" . }}-cassandra-auth
+              key: username
+        - name: JAMES_CASSANDRA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "inbox-server-distributed.fullname" . }}-cassandra-auth
+              key: password
+        - name: JAMES_ES_NODES_URLS
+          value: "{{ $opensearchUrl | trimSuffix "," }}"
+        - name: JAMES_AMQP_HOST
+          value: {{ .Values.james.env.jamesRabbitHost }}
+        - name: JAMES_AMQP_PORT
+          value: "5672"
+        - name: JAMES_AMQP_MANAGEMENT_PORT
+          value: "15672"
+        - name: JAMES_AMQP_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "inbox-server-distributed.fullname" . }}-rabbitmq-auth
+              key: username
+        - name: JAMES_AMQP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "inbox-server-distributed.fullname" . }}-rabbitmq-auth
+              key: password
+        - name: JAMES_DKIM_SIGN_SMTP
+          value: {{ .Values.james.env.jamesDkimSignSmtp }}
+        - name: JAMES_DKIM_SIGN_DOMAIN
+          value: {{ .Values.james.env.jamesDkimSignDomain }}
+        - name: JAMES_DKIM_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: dkim-private-key
+              key: dkim.key
+        - name: JAMES_BUCKET_COUNT
+          value: "6"
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        {{- if and (.Values.opensearch.secret.username) (.Values.opensearch.secret.password) }}
+        - name: JAMES_ES_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "inbox-server-distributed.fullname" . }}-openssearch-auth
+              key: username
+        - name: JAMES_ES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "inbox-server-distributed.fullname" . }}-openssearch-auth
+              key: password
+        {{- end }}
+        {{ if .Values.dns.domain }}
+        - name: JAMES_SERVER_DOMAIN
+          value: "{{ .Values.dns.domain }}"
+        {{ else }}
+        - name: JAMES_SERVER_DOMAIN
+          value: "{{ first .Values.dns.targetIPs }}"
+        {{ end }}
+        - name: JAMES_EMAIL_DOMAIN
+          value: {{ .Values.dns.emailDomain }}
+        - name: JAMES_SMTP_HOSTNAME
+          value: "smtp.{{ .Values.dns.emailDomain }}"
+        - name: JAMES_SMTP_MESSAGE
+          value: "{{ .Values.james.env.jamesHELOMessage }}"
+        - name: JAMES_CASSANDRA_KEYSPACE
+          value: {{ .Values.james.env.jamesCassandraKeyspace }}
+        - name: JAMES_CASSANDRA_CACHE_KEYSPACE
+          value: {{ .Values.james.env.jamesCassandraCacheKeyspace }}
+        - name: JAMES_BUCKET_SUFFIX
+          value: "{{ .Values.s3.bucketNameSuffix }}"
+        - name: JAMES_ES_MAILBOX_INDEX
+          value: {{ .Values.james.env.jamesEsMailboxIndex }}
+        - name: JAMES_ES_CLUSTER_NAME
+          value: {{ .Values.james.env.jamesEsClusterName }}
+        - name: JAMES_ES_HOST_SCHEME
+          value: {{ .Values.james.env.jamesEsHostScheme }}
+        - name: JAMES_ES_SSL_VALIDATION_STRATEGY
+          value: {{ .Values.james.env.jamesEsSslValidationStrategy }}
+        - name: JAMES_ES_HOST_NAME_VERIFIER
+          value: {{ .Values.james.env.jamesEsHostNameVerifier }}
+        - name: JAMES_ES_NB_SHARDS
+          value: "{{ .Values.james.env.jamesEsNbShards }}"
+        - name: JAMES_ES_NB_REPLICA
+          value: "{{ .Values.james.env.jamesEsNbReplica }}"
+        - name: JAMES_ES_MAILBOX_READ_ALIAS
+          value: "{{ .Values.james.env.jamesEsMailboxReadAlias }}"
+        - name: JAMES_ES_MAILBOX_READ_WRITE
+          value: "{{ .Values.james.env.jamesEsMailboxWriteAlias }}"
+        - name: JAMES_MESSAGE_SIZE
+          value: "{{ .Values.james.env.jamesMessageSize }}"
+        - name: JAVA_TOOL_OPTIONS
+          value: "{{ $jamesOpts }}"
+        ports:
+        - containerPort: 8080
+        - containerPort: 8000
+        - containerPort: 4000
+        resources:
+          limits:
+            cpu: {{ .Values.james.env.jamesResources.limits.cpu }}
+            memory: {{ .Values.james.env.jamesResources.limits.memory }}
+          requests:
+            cpu: {{ .Values.james.env.jamesResources.requests.cpu }}
+            memory: {{ .Values.james.env.jamesResources.requests.memory }}
+        volumeMounts:
+        - name: all-in-one-config
+          mountPath: "/root/conf"
+          readOnly: true
+        {{- if .Values.james.tls.secretName }}
+        - name: james-secrets
+          mountPath: /root/secrets
+        {{- end }}
+      volumes:
+      - name: all-in-one-config
+        projected:
+          sources:
+          - configMap:
+              name: {{ include "inbox-server-distributed.fullname" . }}-config
+          - secret:
+              name: {{ include "inbox-server-distributed.fullname" . }}-jwt-key
+      {{- if .Values.james.tls.secretName }}
+      - name: james-secrets
+        projected:
+          sources:
+          - secret:
+              name: {{ .Values.james.tls.secretName }}
+              items:
+              - key: tls.key
+                path: tls.key
+              - key: tls.crt
+                path: tls.crt
+        {{- end }}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "inbox-server-distributed.fullname" . }}-imap-smtp
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: imap-smtp
+    {{- include "inbox-server-distributed.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: imap-smtp
+      {{- include "inbox-server-distributed.labels" . | nindent 6 }}
+  replicas: {{ .Values.james.replicaImapSmtpInstanceCount }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: james
+        app.kubernetes.io/component: imap-smtp
+        {{- include "inbox-server-distributed.labels" . | nindent 8 }}
+    spec:
+    {{- if .Values.dockerCredentials }}
+      imagePullSecrets:
+      - name: docker-registry-secret
+    {{- end }}
+      # affinity:
+      #   podAntiAffinity:
+      #     preferredDuringSchedulingIgnoredDuringExecution:
+      #     - weight: 100
+      #       podAffinityTerm:
+      #         labelSelector:
+      #           matchExpressions:
+      #           - key: app
+      #             operator: In
+      #             values:
+      #             - james
+      #         topologyKey: "kubernetes.io/hostname"
+
+      containers:
+      - name: james-imap-smtp
+        image: {{ .Values.james.image }}
+        args:
+          - --generate-keystore
+        # readinessProbe:
+        #   httpGet:
+        #     path: /healthcheck/checks/Guice%20application%20lifecycle
+        #     port: 8000
+        #   initialDelaySeconds: 60
+        #   periodSeconds: 10
+        # livenessProbe:
+        #   httpGet:
+        #     path: /healthcheck/checks/Guice%20application%20lifecycle
+        #     port: 8000
+        #   initialDelaySeconds: 91
+        #   periodSeconds: 30
+        envFrom:
+          - secretRef:
+              name: {{ include "inbox-server-distributed.fullname" . }}-s3-auth
+        env:
+        - name: ELASTICSEARCH_INIT_TIMEOUT
+          value: "120"
+        - name: JAMES_IMAP_SMTP_ENABLED
+          value: "true"
+        - name: JAMES_JMAP_ENABLED
+          value: "false"
+        - name: JAMES_CASSANDRA_NODES_URLS
+          value: "{{ $cassandraUrl | trimSuffix "," }}"
+        - name: JAMES_CASSANDRA_REPLICATION_FACTOR
+          value: "{{ .Values.james.env.cassandraReplicationFactor }}"
+        - name: JAMES_CASSANDRA_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "inbox-server-distributed.fullname" . }}-cassandra-auth
+              key: username
+        - name: JAMES_CASSANDRA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "inbox-server-distributed.fullname" . }}-cassandra-auth
+              key: password
+        - name: JAMES_ES_NODES_URLS
+          value: "{{ $opensearchUrl | trimSuffix "," }}"
+        - name: JAMES_AMQP_HOST
+          value: {{ .Values.james.env.jamesRabbitHost }}
+        - name: JAMES_AMQP_PORT
+          value: "5672"
+        - name: JAMES_AMQP_MANAGEMENT_PORT
+          value: "15672"
+        - name: JAMES_AMQP_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "inbox-server-distributed.fullname" . }}-rabbitmq-auth
+              key: username
+        - name: JAMES_AMQP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "inbox-server-distributed.fullname" . }}-rabbitmq-auth
+              key: password
+        - name: JAMES_DKIM_SIGN_SMTP
+          value: {{ .Values.james.env.jamesDkimSignSmtp }}
+        - name: JAMES_DKIM_SIGN_DOMAIN
+          value: {{ .Values.james.env.jamesDkimSignDomain }}
+        - name: JAMES_DKIM_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: dkim-private-key
+              key: dkim.key
+        - name: JAMES_BUCKET_COUNT
+          value: "6"
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        {{- if and (.Values.opensearch.secret.username) (.Values.opensearch.secret.password) }}
+        - name: JAMES_ES_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "inbox-server-distributed.fullname" . }}-openssearch-auth
+              key: username
+        - name: JAMES_ES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "inbox-server-distributed.fullname" . }}-openssearch-auth
+              key: password
+        {{- end }}
+        {{ if .Values.dns.domain }}
+        - name: JAMES_SERVER_DOMAIN
+          value: "{{ .Values.dns.domain }}"
+        {{ else }}
+        - name: JAMES_SERVER_DOMAIN
+          value: "{{ first .Values.dns.targetIPs }}"
+        {{ end }}
+        - name: JAMES_EMAIL_DOMAIN
+          value: {{ .Values.dns.emailDomain }}
+        - name: JAMES_SMTP_HOSTNAME
+          value: "smtp.{{ .Values.dns.emailDomain }}"
+        - name: JAMES_SMTP_MESSAGE
+          value: "{{ .Values.james.env.jamesHELOMessage }}"
+        - name: JAMES_CASSANDRA_KEYSPACE
+          value: {{ .Values.james.env.jamesCassandraKeyspace }}
+        - name: JAMES_CASSANDRA_CACHE_KEYSPACE
+          value: {{ .Values.james.env.jamesCassandraCacheKeyspace }}
+        - name: JAMES_BUCKET_SUFFIX
+          value: "{{ .Values.s3.bucketNameSuffix }}"
+        - name: JAMES_ES_MAILBOX_INDEX
+          value: {{ .Values.james.env.jamesEsMailboxIndex }}
+        - name: JAMES_ES_CLUSTER_NAME
+          value: {{ .Values.james.env.jamesEsClusterName }}
+        - name: JAMES_ES_HOST_SCHEME
+          value: {{ .Values.james.env.jamesEsHostScheme }}
+        - name: JAMES_ES_SSL_VALIDATION_STRATEGY
+          value: {{ .Values.james.env.jamesEsSslValidationStrategy }}
+        - name: JAMES_ES_HOST_NAME_VERIFIER
+          value: {{ .Values.james.env.jamesEsHostNameVerifier }}
+        - name: JAMES_ES_NB_SHARDS
+          value: "{{ .Values.james.env.jamesEsNbShards }}"
+        - name: JAMES_ES_NB_REPLICA
+          value: "{{ .Values.james.env.jamesEsNbReplica }}"
+        - name: JAMES_ES_MAILBOX_READ_ALIAS
+          value: "{{ .Values.james.env.jamesEsMailboxReadAlias }}"
+        - name: JAMES_ES_MAILBOX_READ_WRITE
+          value: "{{ .Values.james.env.jamesEsMailboxWriteAlias }}"
+        - name: JAMES_MESSAGE_SIZE
+          value: "{{ .Values.james.env.jamesMessageSize }}"
+        - name: JAVA_TOOL_OPTIONS
+          value: "{{ $jamesOpts }}"
+        ports:
+        - containerPort: 8000
+        - containerPort: 25
+        - containerPort: 110
+        - containerPort: 465
+        - containerPort: 993
+        - containerPort: 4000
+        resources:
+          limits:
+            cpu: {{ .Values.james.env.jamesResources.limits.cpu }}
+            memory: {{ .Values.james.env.jamesResources.limits.memory }}
+          requests:
+            cpu: {{ .Values.james.env.jamesResources.requests.cpu }}
+            memory: {{ .Values.james.env.jamesResources.requests.memory }}
+        volumeMounts:
+        - name: all-in-one-config
+          mountPath: "/root/conf"
+          readOnly: true
+        {{- if .Values.james.tls.secretName }}
+        - name: james-secrets
+          mountPath: /root/secrets
+        {{- end }}
+      volumes:
+      - name: all-in-one-config
+        projected:
+          sources:
+          - configMap:
+              name: {{ include "inbox-server-distributed.fullname" . }}-config
+          - secret:
+              name: {{ include "inbox-server-distributed.fullname" . }}-jwt-key
+      {{- if .Values.james.tls.secretName }}
+      - name: james-secrets
+        projected:
+          sources:
+          - secret:
+              name: {{ .Values.james.tls.secretName }}
+              items:
+              - key: tls.key
+                path: tls.key
+              - key: tls.crt
+                path: tls.crt
+        {{- end }}

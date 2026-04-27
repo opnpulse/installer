@@ -1,0 +1,42 @@
+{{- if .Values.ingress.enabled -}}
+{{- $fullName := printf "%s-jmap" (include "inbox-server-distributed.fullname" .) -}}
+{{- $svcPort := 80 -}}
+
+{{- if and (not (hasKey .Values.ingress.annotations "external-dns.alpha.kubernetes.io/target")) .Values.dns.targetIPs }}
+{{- $_ := set .Values.ingress.annotations "external-dns.alpha.kubernetes.io/target" (join "," .Values.dns.targetIPs)}}
+{{- end }}
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "inbox-server-distributed.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+  - hosts: {{ list .Values.dns.domain | compact | toJson }}
+    {{- toYaml .Values.ingress.tls | nindent 4 }}
+  {{- end }}
+  rules:
+    - {{- if .Values.dns.domain }}
+    - host: {{ .Values.dns.domain }}
+    - {{- end }}
+      http:
+        paths:
+          - path: /jmap
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: {{ $svcPort }}
+{{- end }}

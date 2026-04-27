@@ -1,0 +1,24 @@
+{{ $data := dict
+  "jmapSessionEndpoint" .Values.inboxServer.jmapSessionEndpoint
+  "webadminEndpoint" .Values.inboxServer.webadminEndpoint
+  "emailDomain" .Values.inboxServer.emailDomain
+  "token" .Values.inboxServer.token
+}}
+
+{{- if .Values.inboxServer.caBundle }}
+{{ $_ := set $data "ca.crt" .Values.inboxServer.caBundle }}
+{{- end }}
+
+{{- if $data }}
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "inbox-agent.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "inbox-agent.labels" . | nindent 4 }}
+type: Opaque
+stringData: {{ $data | toJson }}
+
+{{- end }}

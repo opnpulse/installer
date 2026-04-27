@@ -1,0 +1,170 @@
+{{- $major := default "0" .Capabilities.KubeVersion.Major | trimSuffix "+" | int64 }}
+{{- $minor := default "0" .Capabilities.KubeVersion.Minor | trimSuffix "+" | int64 }}
+{{- $criticalAddon := and .Values.criticalAddon (or (eq .Release.Namespace "kube-system") (and (ge $major 1) (ge $minor 17))) -}}
+
+{{- $nodeSelector := .Values.nodeSelector }}
+{{- if .Values.global }}
+  {{ $nodeSelector = default .Values.nodeSelector .Values.global.nodeSelector }}
+{{- end }}
+
+{{- $tolerations := .Values.tolerations }}
+{{- if .Values.global }}
+  {{ $tolerations = default .Values.tolerations .Values.global.tolerations }}
+{{- end }}
+
+{{- $affinity := .Values.affinity }}
+{{- if .Values.global }}
+  {{ $affinity = default .Values.affinity .Values.global.affinity }}
+{{- end }}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "inbox-agent.fullname" . }}-operator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: operator
+    {{- include "inbox-agent.labels" . | nindent 4 }}
+  {{- with .Values.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: operator
+      {{- include "inbox-agent.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: operator
+        {{- include "inbox-agent.selectorLabels" . | nindent 8 }}
+      annotations:
+      {{- if $criticalAddon }}
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+      {{- end }}
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- include "appscode.imagePullSecrets" . | nindent 6 }}
+      serviceAccountName: {{ include "inbox-agent.serviceAccountName" . }}
+      containers:
+      - name: operator
+        image: {{ include "operator.registry" . }}/{{ .Values.operator.repository }}:{{ .Values.operator.tag | default .Chart.AppVersion }}{{ include "operator.ubi" . }}
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
+        {{- if eq "true" ( include "distro.openshift" . ) }}
+        securityContext:
+          {{- toYaml (omit .Values.operator.securityContext "runAsUser" "runAsGroup" "fsGroup" "supplementalGroups") | nindent 10 }}
+        {{- else }}
+        securityContext:
+          {{- toYaml .Values.operator.securityContext | nindent 10 }}
+        {{- end }}
+        args:
+        - operator
+        - --v={{ .Values.logLevel }}
+        - --secure-port=8443
+        - --audit-log-path=-
+        - --tls-cert-file=/var/serving-cert/tls.crt
+        - --tls-private-key-file=/var/serving-cert/tls.key
+      {{- if .Values.inboxServer.jmapSessionEndpoint }}
+        - --inbox-server-jmap-session-endpoint={{ .Values.inboxServer.jmapSessionEndpoint }}
+      {{- end }}
+      {{- if .Values.inboxServer.webadminEndpoint }}
+        - --inbox-server-webadmin-endpoint={{ .Values.inboxServer.webadminEndpoint }}
+      {{- end }}
+      {{- if .Values.inboxServer.caBundle }}
+        - --inbox-server-ca-file=/var/inbox-server-auth/ca.crt
+      {{- end }}
+      {{- if .Values.inboxServer.emailDomain }}
+        - --inbox-server-email-domain={{ .Values.inboxServer.emailDomain }}
+      {{- end }}
+        - --storage-dir=/var/alertstore
+        ports:
+        - containerPort: 8443
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: INBOX_SERVER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "inbox-agent.fullname" . }}-config
+              key: token
+      {{- if .Values.apiserver.healthcheck.enabled }}
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 5
+      {{- end }}
+        resources:
+          {{- toYaml .Values.operator.resources | nindent 10 }}
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmpdir
+        - mountPath: /var/serving-cert
+          name: serving-cert
+        {{- if .Values.inboxServer.caBundle }}
+        - mountPath: /var/inbox-server-auth
+          name: inbox-server-auth
+        {{- end }}
+        - mountPath: /var/alertstore
+          name: {{ include "inbox-agent.fullname" . }}-operator-pvc
+      volumes:
+      - name: {{ include "inbox-agent.fullname" . }}-operator-pvc
+        persistentVolumeClaim:
+          claimName: {{ include "inbox-agent.fullname" . }}-operator-pvc
+      - name: tmpdir
+        emptyDir: {}
+      - name: serving-cert
+        secret:
+          defaultMode: 420
+          secretName: {{ include "inbox-agent.fullname" . }}-apiserver-cert
+      {{- if .Values.inboxServer.caBundle }}
+      - name: inbox-server-auth
+        secret:
+          defaultMode: 420
+          secretName: {{ include "inbox-agent.fullname" . }}-config
+      {{- end }}
+      {{- if eq "true" ( include "distro.openshift" . ) }}
+      securityContext:
+        {{- toYaml (omit .Values.podSecurityContext "runAsUser" "runAsGroup" "fsGroup" "supplementalGroups") | nindent 8 }}
+      {{- else }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- end }}
+    {{- if or $tolerations $criticalAddon }}
+      tolerations:
+      {{- with $tolerations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if $criticalAddon }}
+        - key: CriticalAddonsOnly
+          operator: Exists
+      {{- end -}}
+    {{- end -}}
+    {{- with $affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with $nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- if $criticalAddon }}
+      priorityClassName: system-cluster-critical
+    {{- end -}}

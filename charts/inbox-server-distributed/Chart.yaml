@@ -1,0 +1,12 @@
+---
+apiVersion: v2
+description: Inbox Server by AppsCode
+name: inbox-server-distributed
+version: v2025.12.25
+appVersion: v0.0.1
+home: https://github.com/ops-center
+icon: https://cdn.appscode.com/images/products/searchlight/searchlight-512x512.png
+sources: [https://github.com/ops-center]
+maintainers:
+  - name: appscode
+    email: support@appscode.com

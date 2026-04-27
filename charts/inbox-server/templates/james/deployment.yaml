@@ -1,0 +1,326 @@
+{{- $jamesOpts := include "inbox-server.jvmOpts" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "inbox-server.fullname" . }}-jmap
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: jmap
+    {{- include "inbox-server.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: jmap
+      {{- include "inbox-server.selectorLabels" . | nindent 6 }}
+  replicas: {{ .Values.james.replicaJmapInstanceCount }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: james
+        app.kubernetes.io/component: jmap
+        {{- include "inbox-server.selectorLabels" . | nindent 8 }}
+    spec:
+    {{- if .Values.dockerCredentials }}
+      imagePullSecrets:
+      - name: docker-registry-secret
+    {{- end }}
+      # affinity:
+      #   podAntiAffinity:
+      #     preferredDuringSchedulingIgnoredDuringExecution:
+      #     - weight: 100
+      #       podAffinityTerm:
+      #         labelSelector:
+      #           matchExpressions:
+      #           - key: app
+      #             operator: In
+      #             values:
+      #             - james
+      #         topologyKey: "kubernetes.io/hostname"
+
+      containers:
+      - name: james-jmap
+        image: {{ .Values.james.image }}
+        args:
+          - --generate-keystore
+        # readinessProbe:
+        #   httpGet:
+        #     path: /healthcheck/checks/Guice%20application%20lifecycle
+        #     port: 8000
+        #   initialDelaySeconds: 60
+        #   periodSeconds: 10
+        # livenessProbe:
+        #   httpGet:
+        #     path: /healthcheck/checks/Guice%20application%20lifecycle
+        #     port: 8000
+        #   initialDelaySeconds: 91
+        #   periodSeconds: 30
+        env:
+        {{- if .Values.postgresql.enabled }}
+        - name: JAMES_POSTGRES_ADDRESS
+          value: {{ include "inbox-server.fullname" . }}-postgresql
+        - name: JAMES_POSTGRES_DATABASE
+          value: {{ .Values.postgresql.auth.database }}
+        - name: JAMES_POSTGRES_USERNAME
+          value: {{ .Values.postgresql.auth.username }}
+        - name: JAMES_POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "inbox-server.fullname" . }}-postgresql
+              key: password
+        {{- else }}
+        - name: JAMES_POSTGRES_ADDRESS
+          value: {{ .Values.postgresql.external.addr }}
+        - name: JAMES_POSTGRES_DATABASE
+          value: {{ .Values.postgresql.auth.database }}
+        - name: JAMES_POSTGRES_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.postgresql.auth.secretName }}
+              key: username
+        - name: JAMES_POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.postgresql.auth.secretName }}
+              key: password
+        {{- end }}
+        - name: JAMES_IMAP_SMTP_ENABLED
+          value: "false"
+        - name: JAMES_JMAP_ENABLED
+          value: "true"
+        - name: JAMES_KEYSTORE_PASSWORD
+          value: "{{ .Values.james.env.jamesKeyStorePassword }}"
+        - name: JAMES_DKIM_SIGN_SMTP
+          value: {{ .Values.james.env.jamesDkimSignSmtp }}
+        - name: JAMES_DKIM_SIGN_DOMAIN
+          value: {{ .Values.james.env.jamesDkimSignDomain }}
+        - name: JAMES_DKIM_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: dkim-private-key
+              key: dkim.key
+        - name: JAMES_BUCKET_COUNT
+          value: "6"
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        {{ if .Values.dns.domain }}
+        - name: JAMES_SERVER_DOMAIN
+          value: "{{ .Values.dns.domain }}"
+        {{ else }}
+        - name: JAMES_SERVER_DOMAIN
+          value: "{{ first .Values.dns.targetIPs }}"
+        {{ end }}
+        - name: JAMES_EMAIL_DOMAIN
+          value: {{ .Values.dns.emailDomain }}
+        - name: JAMES_SMTP_HOSTNAME
+          value: "smtp.{{ .Values.dns.emailDomain }}"
+        - name: JAMES_SMTP_MESSAGE
+          value: "{{ .Values.james.env.jamesHELOMessage }}"
+        - name: JAMES_MESSAGE_SIZE
+          value: "{{ .Values.james.env.jamesMessageSize }}"
+        - name: JAVA_TOOL_OPTIONS
+          value: "{{ $jamesOpts }}"
+        ports:
+        - containerPort: 8080
+        - containerPort: 8000
+        - containerPort: 4000
+        resources:
+          limits:
+            cpu: {{ .Values.james.env.jamesResources.limits.cpu }}
+            memory: {{ .Values.james.env.jamesResources.limits.memory }}
+          requests:
+            cpu: {{ .Values.james.env.jamesResources.requests.cpu }}
+            memory: {{ .Values.james.env.jamesResources.requests.memory }}
+        volumeMounts:
+        - name: all-in-one-config
+          mountPath: "/root/conf"
+          readOnly: true
+        {{- if .Values.james.tls.secretName }}
+        - name: james-secrets
+          mountPath: /root/secrets
+        {{- end }}
+      volumes:
+      - name: all-in-one-config
+        projected:
+          sources:
+          - configMap:
+              name: {{ include "inbox-server.fullname" . }}-config
+          - secret:
+              name: {{ include "inbox-server.fullname" . }}-jwt-key
+      {{- if .Values.james.tls.secretName }}
+      - name: james-secrets
+        projected:
+          sources:
+          - secret:
+              name: {{ .Values.james.tls.secretName }}
+              items:
+              - key: tls.key
+                path: tls.key
+              - key: tls.crt
+                path: tls.crt
+        {{- end }}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "inbox-server.fullname" . }}-imap-smtp
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: imap-smtp
+    {{- include "inbox-server.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: imap-smtp
+      {{- include "inbox-server.selectorLabels" . | nindent 6 }}
+  replicas: {{ .Values.james.replicaImapSmtpInstanceCount }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: james
+        app.kubernetes.io/component: imap-smtp
+        {{- include "inbox-server.selectorLabels" . | nindent 8 }}
+    spec:
+    {{- if .Values.dockerCredentials }}
+      imagePullSecrets:
+      - name: docker-registry-secret
+    {{- end }}
+      # affinity:
+      #   podAntiAffinity:
+      #     preferredDuringSchedulingIgnoredDuringExecution:
+      #     - weight: 100
+      #       podAffinityTerm:
+      #         labelSelector:
+      #           matchExpressions:
+      #           - key: app
+      #             operator: In
+      #             values:
+      #             - james
+      #         topologyKey: "kubernetes.io/hostname"
+
+      containers:
+      - name: james-imap-smtp
+        image: {{ .Values.james.image }}
+        args:
+          - --generate-keystore
+        # readinessProbe:
+        #   httpGet:
+        #     path: /healthcheck/checks/Guice%20application%20lifecycle
+        #     port: 8000
+        #   initialDelaySeconds: 60
+        #   periodSeconds: 10
+        # livenessProbe:
+        #   httpGet:
+        #     path: /healthcheck/checks/Guice%20application%20lifecycle
+        #     port: 8000
+        #   initialDelaySeconds: 91
+        #   periodSeconds: 30
+        env:
+        {{- if .Values.postgresql.enabled }}
+        - name: JAMES_POSTGRES_ADDRESS
+          value: {{ include "inbox-server.fullname" . }}-postgresql
+        - name: JAMES_POSTGRES_DATABASE
+          value: {{ .Values.postgresql.auth.database }}
+        - name: JAMES_POSTGRES_USERNAME
+          value: {{ .Values.postgresql.auth.username }}
+        - name: JAMES_POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "inbox-server.fullname" . }}-postgresql
+              key: password
+        {{- else }}
+        - name: JAMES_POSTGRES_ADDRESS
+          value: {{ .Values.postgresql.external.addr }}
+        - name: JAMES_POSTGRES_DATABASE
+          value: {{ .Values.postgresql.auth.database }}
+        - name: JAMES_POSTGRES_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.postgresql.auth.secretName }}
+              key: username
+        - name: JAMES_POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.postgresql.auth.secretName }}
+              key: password
+        {{- end }}
+        - name: JAMES_IMAP_SMTP_ENABLED
+          value: "true"
+        - name: JAMES_JMAP_ENABLED
+          value: "false"
+        - name: JAMES_DKIM_SIGN_SMTP
+          value: {{ .Values.james.env.jamesDkimSignSmtp }}
+        - name: JAMES_DKIM_SIGN_DOMAIN
+          value: {{ .Values.james.env.jamesDkimSignDomain }}
+        - name: JAMES_DKIM_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: dkim-private-key
+              key: dkim.key
+        - name: JAMES_BUCKET_COUNT
+          value: "6"
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        {{ if .Values.dns.domain }}
+        - name: JAMES_SERVER_DOMAIN
+          value: "{{ .Values.dns.domain }}"
+        {{ else }}
+        - name: JAMES_SERVER_DOMAIN
+          value: "{{ first .Values.dns.targetIPs }}"
+        {{ end }}
+        - name: JAMES_EMAIL_DOMAIN
+          value: {{ .Values.dns.emailDomain }}
+        - name: JAMES_SMTP_HOSTNAME
+          value: "smtp.{{ .Values.dns.emailDomain }}"
+        - name: JAMES_SMTP_MESSAGE
+          value: "{{ .Values.james.env.jamesHELOMessage }}"
+        - name: JAMES_MESSAGE_SIZE
+          value: "{{ .Values.james.env.jamesMessageSize }}"
+        - name: JAVA_TOOL_OPTIONS
+          value: "{{ $jamesOpts }}"
+        ports:
+        - containerPort: 8000
+        - containerPort: 25
+        - containerPort: 110
+        - containerPort: 465
+        - containerPort: 993
+        - containerPort: 4000
+        resources:
+          limits:
+            cpu: {{ .Values.james.env.jamesResources.limits.cpu }}
+            memory: {{ .Values.james.env.jamesResources.limits.memory }}
+          requests:
+            cpu: {{ .Values.james.env.jamesResources.requests.cpu }}
+            memory: {{ .Values.james.env.jamesResources.requests.memory }}
+        volumeMounts:
+        - name: all-in-one-config
+          mountPath: "/root/conf"
+          readOnly: true
+        {{- if .Values.james.tls.secretName }}
+        - name: james-secrets
+          mountPath: /root/secrets
+        {{- end }}
+      volumes:
+      - name: all-in-one-config
+        projected:
+          sources:
+          - configMap:
+              name: {{ include "inbox-server.fullname" . }}-config
+          - secret:
+              name: {{ include "inbox-server.fullname" . }}-jwt-key
+      {{- if .Values.james.tls.secretName }}
+      - name: james-secrets
+        projected:
+          sources:
+          - secret:
+              name: {{ .Values.james.tls.secretName }}
+              items:
+              - key: tls.key
+                path: tls.key
+              - key: tls.crt
+                path: tls.crt
+        {{- end }}

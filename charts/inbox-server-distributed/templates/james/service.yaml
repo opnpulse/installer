@@ -1,0 +1,76 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ include "inbox-server-distributed.fullname" . }}-client
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app.kubernetes.io/component: imap-smtp
+    {{- include "inbox-server-distributed.labels" . | nindent 4 }}
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 465
+      name: "smtp-ssl"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "inbox-server-distributed.fullname" . }}-imap
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app.kubernetes.io/component: imap-smtp
+    {{- include "inbox-server-distributed.labels" . | nindent 4 }}
+  ports:
+    - protocol: TCP
+      port: 993
+      name : "imap-ssl"
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ include "inbox-server-distributed.fullname" . }}-admin
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/part-of: james
+    {{- include "inbox-server-distributed.labels" . | nindent 4 }}
+spec:
+  selector:
+    app.kubernetes.io/part-of: james
+    {{- include "inbox-server-distributed.labels" . | nindent 4 }}
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+      name: "web"
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ include "inbox-server-distributed.fullname" . }}-jmap
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app.kubernetes.io/component: jmap
+    {{- include "inbox-server-distributed.labels" . | nindent 4 }}
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+      name: "web"
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ include "inbox-server-distributed.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app.kubernetes.io/component: imap-smtp
+    {{- include "inbox-server-distributed.labels" . | nindent 4 }}
+  ports:
+    - protocol: TCP
+      port: 25
+      targetPort: 25
+      name: "smtp-open"

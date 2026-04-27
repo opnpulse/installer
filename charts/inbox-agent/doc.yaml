@@ -1,0 +1,18 @@
+---
+project:
+  name: Inbox Agent by AppsCode
+  shortName: Inbox Agent
+  url: https://github.com/ops-center/inbox-agent
+  description: Inbox Agent by AppsCode
+  app: Inbox Agent
+repository:
+  url: https://charts.appscode.com/stable/
+  name: appscode
+chart:
+  name: inbox-agent
+  values: -- generate from values file --
+  valuesExample: -- generate from values file --
+prerequisites: [Kubernetes 1.21+]
+release:
+  name: inbox-agent
+  namespace: monitoring

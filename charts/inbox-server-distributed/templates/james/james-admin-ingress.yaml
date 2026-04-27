@@ -1,0 +1,44 @@
+{{- if .Values.adminIngress.enabled -}}
+{{- $fullName := printf "%s-admin" (include "inbox-server-distributed.fullname" .) -}}
+{{- $svcPort := 8000 -}}
+
+{{- if and (not (hasKey .Values.adminIngress.annotations "external-dns.alpha.kubernetes.io/target")) .Values.dns.targetIPs }}
+{{- $_ := set .Values.adminIngress.annotations "external-dns.alpha.kubernetes.io/target" (join "," .Values.dns.targetIPs)}}
+{{- end }}
+{{- $_ := set .Values.adminIngress.annotations "nginx.ingress.kubernetes.io/use-regex" "true" }}
+{{- $_ := set .Values.adminIngress.annotations "nginx.ingress.kubernetes.io/rewrite-target" "/$2" }}
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "inbox-server-distributed.labels" . | nindent 4 }}
+  {{- with .Values.adminIngress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.adminIngress.className }}
+  ingressClassName: {{ .Values.adminIngress.className }}
+  {{- end }}
+  {{- if .Values.adminIngress.tls }}
+  tls:
+  - hosts: {{ list .Values.dns.domain | compact | toJson }}
+    {{- toYaml .Values.adminIngress.tls | nindent 4 }}
+  {{- end }}
+  rules:
+    - {{- if .Values.dns.domain }}
+    - host: {{ .Values.dns.domain }}
+    - {{- end }}
+      http:
+        paths:
+          - path: /inbox-admin(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: {{ $svcPort }}
+{{- end }}
