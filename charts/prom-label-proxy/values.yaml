@@ -380,13 +380,13 @@ infra:
       cert: ""
       key: ""
     jks:
-      keystore:
-      truststore:
+      keystore: ""
+      truststore: ""
       password: ""
   dns:
     provider: "external" # external,cloudflare,route53,cloudDNS
     auth: {}
-  gatewayClassName: "ace"
+  tenantSpreadPolicy: ""
 
 platform:
   baseURL: ""
@@ -394,4 +394,3 @@ platform:
 distro:
   openshift: false
   ubi: ""
-

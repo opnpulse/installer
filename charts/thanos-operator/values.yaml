@@ -55,6 +55,8 @@ manager:
     capabilities:
       drop:
         - ALL
+    seccompProfile:
+      type: RuntimeDefault
 
   ## Resource limits and requests
   ##

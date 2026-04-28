@@ -26,7 +26,9 @@ for dir in charts/*/; do
         [[ "$dir" = "pgoutbox" ]] ||
         [[ "$dir" = "inbox-agent" ]] ||
         [[ "$dir" = "inbox-server" ]] ||
-        [[ "$dir" = "inbox-server-distributed" ]]; then
+        [[ "$dir" = "inbox-server-distributed" ]] ||
+        [[ "$dir" = "perses" ]] ||
+        [[ "$dir" = "prom-label-proxy" ]]; then
         make ct CT_COMMAND=lint TEST_CHARTS=charts/$dir
     elif [[ "$dir" = "cert-manager-csi-driver-cacerts" ]]; then
         ns=app-$(date +%s | head -c 6)

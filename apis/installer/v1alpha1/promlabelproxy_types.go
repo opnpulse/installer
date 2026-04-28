@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	catgwapi "go.bytebuilders.dev/catalog/api/gateway/v1alpha1"
 	core "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -78,13 +79,13 @@ type PromLabelProxySpec struct {
 	// +optional
 	LivenessProbe PromLabelProxyProbe `json:"livenessProbe"`
 	// +optional
-	ReadinessProbe PromLabelProxyProbe         `json:"readinessProbe"`
-	Ingress        PromLabelProxyIngress       `json:"ingress"`
-	Config         PromLabelProxyConfig        `json:"config"`
-	Metrics        PromLabelProxyMetrics       `json:"metrics"`
-	KubeRBACProxy  PromLabelProxyKubeRBACProxy `json:"kubeRBACProxy"`
-	Clickhouse     PromLabelProxyClickhouse    `json:"clickhouse"`
-	Infra          PromLabelProxyInfra         `json:"infra"`
+	ReadinessProbe PromLabelProxyProbe           `json:"readinessProbe"`
+	Ingress        PromLabelProxyIngress         `json:"ingress"`
+	Config         PromLabelProxyConfig          `json:"config"`
+	Metrics        PromLabelProxyMetrics         `json:"metrics"`
+	KubeRBACProxy  PromLabelProxyKubeRBACProxy   `json:"kubeRBACProxy"`
+	Clickhouse     PromLabelProxyClickhouse      `json:"clickhouse"`
+	Infra          catgwapi.ServiceProviderInfra `json:"infra"`
 	// +optional
 	Platform PromLabelProxyPlatform `json:"platform"`
 	// +optional
@@ -313,54 +314,6 @@ type PromLabelProxyStorage struct {
 	AccessModes []string `json:"accessModes"`
 	// +optional
 	Resources core.ResourceRequirements `json:"resources"`
-}
-
-type PromLabelProxyInfra struct {
-	Host             string                 `json:"host"`
-	HostType         string                 `json:"hostType"`
-	TLS              PromLabelProxyInfraTLS `json:"tls"`
-	DNS              PromLabelProxyInfraDNS `json:"dns"`
-	GatewayClassName string                 `json:"gatewayClassName"`
-}
-
-type PromLabelProxyInfraTLS struct {
-	Issuer      string                     `json:"issuer"`
-	Ca          PromLabelProxyInfraTLSCa   `json:"ca"`
-	Acme        PromLabelProxyInfraTLSAcme `json:"acme"`
-	Certificate PromLabelProxyInfraTLSCert `json:"certificate"`
-	// +optional
-	Jks PromLabelProxyInfraTLSJks `json:"jks"`
-}
-
-type PromLabelProxyInfraTLSJks struct {
-	// +optional
-	Keystore *string `json:"keystore"`
-	// +optional
-	Truststore *string `json:"truststore"`
-	//+optional
-	Password string `json:"password"`
-}
-
-type PromLabelProxyInfraTLSCa struct {
-	Cert string `json:"cert"`
-	Key  string `json:"key"`
-}
-
-type PromLabelProxyInfraTLSAcme struct {
-	Email       string `json:"email"`
-	Solver      string `json:"solver"`
-	GatewayName string `json:"gatewayName"`
-}
-
-type PromLabelProxyInfraTLSCert struct {
-	Cert string `json:"cert"`
-	Key  string `json:"key"`
-}
-
-type PromLabelProxyInfraDNS struct {
-	Provider string `json:"provider"`
-	//+optional
-	Auth map[string]string `json:"auth"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
