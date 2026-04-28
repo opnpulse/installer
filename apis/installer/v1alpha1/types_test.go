@@ -27,11 +27,14 @@ import (
 
 func TestDefaultValues(t *testing.T) {
 	checker := schemachecker.New(os.DirFS("../../.."),
-		schemachecker.TestCase{Obj: v1alpha1.TenantOperator{}},
-		schemachecker.TestCase{Obj: v1alpha1.ThanosOperator{}},
-		schemachecker.TestCase{Obj: v1alpha1.PromLabelProxy{}},
-		schemachecker.TestCase{Obj: v1alpha1.Perses{}},
-		schemachecker.TestCase{Obj: v1alpha1.AppscodeOtelStack{}},
+		schemachecker.TestCase{Obj: v1alpha1.AppscodeOtelStackSpec{}},
+		schemachecker.TestCase{Obj: v1alpha1.InboxAgentSpec{}},
+		schemachecker.TestCase{Obj: v1alpha1.InboxServerDistributedSpec{}},
+		schemachecker.TestCase{Obj: v1alpha1.InboxServerSpec{}},
+		schemachecker.TestCase{Obj: v1alpha1.PersesSpec{}},
+		schemachecker.TestCase{Obj: v1alpha1.PromLabelProxySpec{}},
+		schemachecker.TestCase{Obj: v1alpha1.TenantOperatorSpec{}},
+		schemachecker.TestCase{Obj: v1alpha1.ThanosOperatorSpec{}},
 	)
 	checker.TestAll(t)
 }
