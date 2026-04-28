@@ -79,16 +79,16 @@ collectors:
       service:
         pipelines:
           metrics:
-            receivers: [ prometheus ]
-            processors: [ memory_limiter, k8sattributes, attributes/node, batch ]
-            exporters: [ otlp ]
+            receivers: [prometheus]
+            processors: [memory_limiter, k8sattributes, attributes/node, batch]
+            exporters: [otlp]
           traces:
-            receivers: [ otlp ]
-            processors: [ memory_limiter, k8sattributes ]
-            exporters: [ otlp ]
+            receivers: [otlp]
+            processors: [memory_limiter, k8sattributes]
+            exporters: [otlp]
           logs:
             receivers: [filelog]
-            processors: [ memory_limiter, k8sattributes]
+            processors: [memory_limiter, k8sattributes]
             exporters: [otlp]
     presets:
       logsCollection:
@@ -248,19 +248,19 @@ collectors:
         extensions: [headers_setter]
         pipelines:
           logs:
-            processors: [ memory_limiter ]
+            processors: [memory_limiter]
             receivers: [otlp]
             exporters: [clickhouse]
           metrics:
-            receivers: [ otlp ]
-            #            processors: [ attributes/example, groupbyattrs, transform/tenant, groupbyattrs/tenant, context/tenant, batch/tenant]
-            processors: [ memory_limiter, attributes/example, transform/tenant, context/tenant, batch/tenant]
+            receivers: [otlp]
+            #            processors: [attributes/example, groupbyattrs, transform/tenant, groupbyattrs/tenant, context/tenant, batch/tenant]
+            processors: [memory_limiter, attributes/example, transform/tenant, context/tenant, batch/tenant]
             exporters: [prometheusremotewrite]
           traces:
-            receivers: [ otlp ]
-            #            processors: [ k8sattributes, attributes/example, groupbyattrs, transform/tenant, groupbyattrs/tenant, context/tenant, batch/tenant ]
-            processors: [ memory_limiter, attributes/example, transform/tenant, context/tenant, batch/tenant]
-            exporters: [ clickhouse ]
+            receivers: [otlp]
+            #            processors: [k8sattributes, attributes/example, groupbyattrs, transform/tenant, groupbyattrs/tenant, context/tenant, batch/tenant]
+            processors: [memory_limiter, attributes/example, transform/tenant, context/tenant, batch/tenant]
+            exporters: [clickhouse]
 
 instrumentation:
   enabled: false
