@@ -52,25 +52,6 @@ type ThanosOperatorSpec struct {
 	Prometheus  ThanosFeatureFlag     `json:"prometheus"`
 	// +optional
 	ObjectStorage ThanosObjectStorage `json:"objectStorage"`
-	// +optional
-	ThanosRuler ThanosRulerSpec `json:"thanosRuler"`
-}
-
-type ThanosRulerSpec struct {
-	Enabled bool               `json:"enabled"`
-	Storage ThanosRulerStorage `json:"storage"`
-	//+optional
-	AdditionalArgs []string `json:"additionalArgs"`
-	//+optional
-	MonitoringClusterBaseURL string `json:"monitoringClusterBaseURL"`
-	// +optional
-	AdditionalVolumeMounts []core.VolumeMount `json:"additionalVolumeMounts"`
-	// +optional
-	AdditionalVolumes []core.Volume `json:"additionalVolumes"`
-}
-
-type ThanosRulerStorage struct {
-	Size string `json:"size"`
 }
 
 type ThanosObjectStorage struct {

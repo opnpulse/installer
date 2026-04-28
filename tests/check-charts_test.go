@@ -28,7 +28,7 @@ import (
 var ignoreMissingList = []string{}
 
 var archSkipList = []string{
-	"ghcr.io/cloudoperators/greenhouse-extensions-integration-test:*",
+	"ghcr.io/cloudoperators/greenhouse-extensions-integration-test:main",
 }
 
 func Test_CheckImageArchitectures(t *testing.T) {

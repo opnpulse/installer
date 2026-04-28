@@ -45,15 +45,10 @@ type AppscodeOtelStack struct {
 
 // AppscodeOtelStackSpec is the schema for AppscodeOtelStack values file
 type AppscodeOtelStackSpec struct {
-	//+optional
-	NameOverride string `json:"nameOverride"`
-	//+optional
-	FullnameOverride       string                     `json:"fullnameOverride"`
-	OpentelemetryKubeStack OpentelemetryKubeStackSpec `json:"opentelemetry-kube-stack"`
-}
-
-type OpentelemetryKubeStackSpec struct {
-	ClusterName               string                           `json:"clusterName"`
+	ClusterName string `json:"clusterName"`
+	// +optional
+	OpentelemetryOperator     *apiextensionsv1.JSON            `json:"opentelemetry-operator"`
+	AdmissionWebhooks         OtelAdmissionWebhooks            `json:"admissionWebhooks"`
 	Collectors                OpentelemetryKubeStackCollectors `json:"collectors"`
 	Instrumentation           OpentelemetryFeatureFlag         `json:"instrumentation"`
 	OpAMPBridge               OpentelemetryFeatureFlag         `json:"opAMPBridge"`
@@ -69,6 +64,14 @@ type OpentelemetryKubeStackSpec struct {
 	NodeExporter              OpentelemetryFeatureFlag         `json:"nodeExporter"`
 }
 
+type OtelAdmissionWebhooks struct {
+	AutoGenerateCert OtelAutoGenerateCert `json:"autoGenerateCert"`
+}
+
+type OtelAutoGenerateCert struct {
+	Enabled bool `json:"enabled"`
+}
+
 type OpentelemetryFeatureFlag struct {
 	Enabled bool `json:"enabled"`
 }
@@ -80,29 +83,32 @@ type OpentelemetryKubeStackCollectors struct {
 
 type OtelCollector struct {
 	//+optional
-	Suffix  string `json:"suffix"`
+	Suffix  string `json:"suffix,omitempty"`
 	Enabled bool   `json:"enabled"`
 	//+optional
-	Env []core.EnvVar `json:"env"`
+	Env []core.EnvVar `json:"env,omitempty"`
 	//+optional
-	ScrapeConfigsFile string `json:"scrape_configs_file"`
+	ScrapeConfigsFile string `json:"scrape_configs_file,omitempty"`
 	//+optional
-	Labels map[string]string `json:"labels"`
+	Labels map[string]string `json:"labels,omitempty"`
 	//+optional
-	Image *OtelCollectorImage `json:"image"`
+	Image *OtelCollectorImage `json:"image,omitempty"`
 	// +optional
-	TargetAllocator *OtelTargetAllocator `json:"targetAllocator"`
-	// Config holds the arbitrary OpenTelemetry collector pipeline configuration
-	// (receivers, exporters, processors, service, extensions).
+	TargetAllocator *OtelTargetAllocator `json:"targetAllocator,omitempty"`
+	// Config holds the arbitrary OpenTelemetry collector pipeline configuration.
 	// +optional
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Config *apiextensionsv1.JSON `json:"config"`
+	Config *apiextensionsv1.JSON `json:"config,omitempty"`
 	// +optional
-	Presets *OtelCollectorPresets `json:"presets"`
+	Presets *OtelCollectorPresets `json:"presets,omitempty"`
 	//+optional
-	VolumeMounts []core.VolumeMount `json:"volumeMounts"`
+	VolumeMounts []core.VolumeMount `json:"volumeMounts,omitempty"`
 	//+optional
-	Volumes []core.Volume `json:"volumes"`
+	Volumes []core.Volume `json:"volumes,omitempty"`
+	// +optional
+	Resources core.ResourceRequirements `json:"resources,omitempty"`
+	// +optional
+	HostAliases []core.HostAlias `json:"hostAliases,omitempty"`
 }
 
 type OtelCollectorImage struct {
@@ -130,11 +136,16 @@ type OtelTargetAllocatorPromCR struct {
 }
 
 type OtelCollectorPresets struct {
-	LogsCollection       *OtelPresetFlag `json:"logsCollection"`
-	HostMetrics          *OtelPresetFlag `json:"hostMetrics"`
-	KubeletMetrics       *OtelPresetFlag `json:"kubeletMetrics"`
-	KubernetesAttributes *OtelPresetFlag `json:"kubernetesAttributes"`
-	ClusterMetrics       *OtelPresetFlag `json:"clusterMetrics"`
+	// +optional
+	LogsCollection *OtelPresetFlag `json:"logsCollection,omitempty"`
+	// +optional
+	HostMetrics *OtelPresetFlag `json:"hostMetrics,omitempty"`
+	// +optional
+	KubeletMetrics *OtelPresetFlag `json:"kubeletMetrics,omitempty"`
+	// +optional
+	KubernetesAttributes *OtelPresetFlag `json:"kubernetesAttributes,omitempty"`
+	// +optional
+	ClusterMetrics *OtelPresetFlag `json:"clusterMetrics,omitempty"`
 }
 
 type OtelPresetFlag struct {

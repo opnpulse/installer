@@ -13,6 +13,3 @@
 - quay.io/thanos/thanos-operator:main-2025-10-23-e28d488
 - rabbitmq:3.12.1-management
 - rancher/kubectl:v1.34.1
-- rokibulhasan114/opentelemetry-collector-ace:v0.1.0
-- rokibulhasan114/perses:v0.0.1
-- rokibulhasan114/tenant-operator:v0.0.1

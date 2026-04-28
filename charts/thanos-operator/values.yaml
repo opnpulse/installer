@@ -112,28 +112,6 @@ certManager:
 prometheus:
   enable: false
 
-## ThanosRuler configuration.
-##
-thanosRuler:
-  enabled: false
-  storage:
-    size: 2Gi
-  additionalArgs: []
-  # - --query.config-file=/etc/ruler/query.yaml
-  # - --remote-write.config-file=/etc/ruler-rw/remote-write.yaml
-  additionalVolumeMounts: []
-  # - mountPath: /etc/thanos/certs
-  #   name: thanos-certs
-  #   readOnly: true
-  additionalVolumes: []
-  # - name: thanos-certs
-  #   secret:
-  #     secretName: tls-ssl-minio
-  #     items:
-  #       - key: public.crt
-  #         path: public.crt
-  monitoringClusterBaseURL: ""
-
 ## S3-compatible object storage configuration for Thanos.
 ## When enabled, creates the thanos-object-storage-secret.
 ##

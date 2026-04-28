@@ -89,6 +89,8 @@ type PromLabelProxySpec struct {
 	Platform PromLabelProxyPlatform `json:"platform"`
 	// +optional
 	Distro shared.DistroSpec `json:"distro"`
+	// +optional
+	ExtraManifests *apiextensionsv1.JSON `json:"extraManifests"`
 }
 
 type PromLabelProxyProbe struct {
@@ -198,6 +200,16 @@ type PromLabelProxyServiceMonitor struct {
 	Interval string `json:"interval"`
 	//+optional
 	ScrapeTimeout string `json:"scrapeTimeout"`
+	// +optional
+	AttachMetadata *apiextensionsv1.JSON `json:"attachMetadata"`
+	// +optional
+	Relabelings *apiextensionsv1.JSON `json:"relabelings"`
+	// +optional
+	MetricRelabelings *apiextensionsv1.JSON `json:"metricRelabelings"`
+	// +optional
+	AdditionalConfigs *apiextensionsv1.JSON `json:"additionalConfigs"`
+	// +optional
+	AdditionalEndpointConfigs *apiextensionsv1.JSON `json:"additionalEndpointConfigs"`
 }
 
 type PromLabelProxyKubeRBACProxy struct {
@@ -316,6 +328,17 @@ type PromLabelProxyInfraTLS struct {
 	Ca          PromLabelProxyInfraTLSCa   `json:"ca"`
 	Acme        PromLabelProxyInfraTLSAcme `json:"acme"`
 	Certificate PromLabelProxyInfraTLSCert `json:"certificate"`
+	// +optional
+	Jks PromLabelProxyInfraTLSJks `json:"jks"`
+}
+
+type PromLabelProxyInfraTLSJks struct {
+	// +optional
+	Keystore *string `json:"keystore"`
+	// +optional
+	Truststore *string `json:"truststore"`
+	//+optional
+	Password string `json:"password"`
 }
 
 type PromLabelProxyInfraTLSCa struct {
