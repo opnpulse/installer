@@ -3,7 +3,7 @@ name: thanos-operator
 description: A Helm chart to distribute thanos-operator
 type: application
 
-version: 0.1.0
+version: v2026.4.30
 appVersion: "0.1.0"
 
 keywords:
