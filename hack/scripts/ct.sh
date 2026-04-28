@@ -23,7 +23,10 @@ for dir in charts/*/; do
     echo $dir
     if [ $num_files -le 1 ] ||
         [[ "$dir" = "cluster-connector" ]] ||
-        [[ "$dir" = "pgoutbox" ]]; then
+        [[ "$dir" = "pgoutbox" ]] ||
+        [[ "$dir" = "inbox-agent" ]] ||
+        [[ "$dir" = "inbox-server" ]] ||
+        [[ "$dir" = "inbox-server-distributed" ]]; then
         make ct CT_COMMAND=lint TEST_CHARTS=charts/$dir
     elif [[ "$dir" = "cert-manager-csi-driver-cacerts" ]]; then
         ns=app-$(date +%s | head -c 6)
