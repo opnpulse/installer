@@ -40,10 +40,7 @@ spec:
   {{- if .Values.clickhouse.tls.clientCaCertificateRefs }}
   tls:
     clientCaCertificateRefs:
-      {{- range .Values.clickhouse.tls.clientCaCertificateRefs }}
-      - name: {{ .name | quote }}
-        key: {{ .key | quote }}
-      {{- end }}
+      {{- toYaml .Values.clickhouse.tls.clientCaCertificateRefs | nindent 6 }}
   {{- end }}
   {{- if .Values.clickhouse.s3.endpoint }}      
   configuration:
