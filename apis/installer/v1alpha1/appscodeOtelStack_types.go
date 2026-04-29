@@ -45,6 +45,10 @@ type AppscodeOtelStack struct {
 
 // AppscodeOtelStackSpec is the schema for AppscodeOtelStack values file
 type AppscodeOtelStackSpec struct {
+	OpentelemetryKubeStack OpentelemetryKubeStackValues `json:"opentelemetry-kube-stack"`
+}
+
+type OpentelemetryKubeStackValues struct {
 	ClusterName string `json:"clusterName"`
 	// +optional
 	OpentelemetryOperator     *apiextensionsv1.JSON            `json:"opentelemetry-operator"`
