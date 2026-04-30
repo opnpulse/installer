@@ -12,6 +12,6 @@ maintainers:
     email: support@appscode.com
 dependencies:
   - name: opentelemetry-kube-stack
-    repository: oci://ghcr.io/appscode-charts
+    repository: "file://../opentelemetry-kube-stack"
     condition: opentelemetry-kube-stack.enabled
     version: 0.14.12

@@ -9,6 +9,10 @@ opentelemetry-kube-stack:
       certManager:
         enabled: false
     manager:
+      image:
+        repository: ghcr.io/open-telemetry/opentelemetry-operator/opentelemetry-operator
+        tag: "0.150.0"
+        imagePullPolicy: IfNotPresent
       featureGatesMap:
         operator.targetallocator.mtls: true
       createRbacPermissions: true
