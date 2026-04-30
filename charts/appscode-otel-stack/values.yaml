@@ -1,4 +1,7 @@
 opentelemetry-kube-stack:
+  crds:
+    installOtel: false
+
   clusterName: ace
 
   opentelemetry-operator:
@@ -50,7 +53,7 @@ opentelemetry-kube-stack:
               - name: namespaces
         exporters:
           otlp:
-            endpoint: opentelemetry-kube-stack-gateway-collector.monitoring.svc.cluster.local:4317
+            endpoint: appscode-otel-stack-gateway-collector.monitoring.svc.cluster.local:4317
             tls:
               insecure: true
           debug:
@@ -242,7 +245,7 @@ opentelemetry-kube-stack:
               max_interval: 30s
               max_elapsed_time: 120s
           otlp:
-            endpoint: opentelemetry-kube-stack-gateway-collector.monitoring.svc.cluster.local:4317
+            endpoint: appscode-otel-stack-gateway-collector.monitoring.svc.cluster.local:4317
             tls:
               insecure: true
         service:

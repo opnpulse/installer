@@ -51,6 +51,8 @@ type AppscodeOtelStackSpec struct {
 type OpentelemetryKubeStackValues struct {
 	ClusterName string `json:"clusterName"`
 	// +optional
+	Crds OtelCrdsConfig `json:"crds"`
+	// +optional
 	OpentelemetryOperator     *apiextensionsv1.JSON            `json:"opentelemetry-operator"`
 	AdmissionWebhooks         OtelAdmissionWebhooks            `json:"admissionWebhooks"`
 	Collectors                OpentelemetryKubeStackCollectors `json:"collectors"`
@@ -66,6 +68,10 @@ type OpentelemetryKubeStackValues struct {
 	KubeProxy                 OpentelemetryFeatureFlag         `json:"kubeProxy"`
 	KubeStateMetrics          OpentelemetryFeatureFlag         `json:"kubeStateMetrics"`
 	NodeExporter              OpentelemetryFeatureFlag         `json:"nodeExporter"`
+}
+
+type OtelCrdsConfig struct {
+	InstallOtel bool `json:"installOtel"`
 }
 
 type OtelAdmissionWebhooks struct {
