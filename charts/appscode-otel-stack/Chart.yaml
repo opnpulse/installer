@@ -14,4 +14,4 @@ dependencies:
   - name: opentelemetry-kube-stack
     repository: oci://ghcr.io/appscode-charts
     condition: opentelemetry-kube-stack.enabled
-    version: 0.14.11
+    version: 0.14.12

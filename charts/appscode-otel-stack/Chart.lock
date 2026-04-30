@@ -1,6 +1,6 @@
 dependencies:
 - name: opentelemetry-kube-stack
   repository: oci://ghcr.io/appscode-charts
-  version: 0.14.11
-digest: sha256:a8a56ad5a69a3bdac0ddc6436ccd458e6718d351b79f1fd3bb5da86c408ce0a5
-generated: "2026-04-27T12:40:48.826374+06:00"
+  version: 0.14.12
+digest: sha256:4747fddc7d04325b6ad64ab83f25783d9b12c82d5d38f83c81be14fc6b3c55de
+generated: "2026-04-30T14:21:11.446698666+06:00"
