@@ -117,10 +117,3 @@ prometheus:
 ## S3-compatible object storage configuration for Thanos.
 ## When enabled, creates the thanos-object-storage-secret.
 ##
-objectStorage:
-  bucket: ""
-  endpoint: ""
-  accessKey: ""
-  secretKey: ""
-  prefix: "metrics"
-  region: "us-east-1"
