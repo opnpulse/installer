@@ -55,7 +55,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             - "--insecure-listen-address={{ tpl .Values.config.listenAddress $ }}"
-            - "--upstream={{ tpl .Values.config.upstream $ }}"
+            - --upstream=http://thanos-query-telemetry-stack.monitoring.svc:9090/
             - "--label={{ tpl .Values.config.label $ }}"
             {{- if .Values.metrics.enabled }}
             - "--internal-listen-address={{ tpl .Values.metrics.listenAddress $ }}"
@@ -64,7 +64,7 @@ spec:
             - --tls-key-file=/etc/proxy-tls/tls.key
             - --tls-ca-file=/etc/proxy-tls/ca.crt
             - --require-client-cert=true
-            - --cert-auth-ou=EnableTenant=true
+            - --cert-auth-ou=EnableTenant=True
             {{- with .Values.config.extraArgs }}
               {{- tpl (typeIs "string" . | ternary . (. | toYaml)) $ | nindent 12 }}
             {{- end }}
@@ -73,20 +73,20 @@ spec:
               valueFrom:
                 secretKeyRef:
                   key: username
-                  name: ch-auth
+                  name: monitoring-clickhouse-auth
             - name: CLICKHOUSE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   key: password
-                  name: ch-auth
+                  name: monitoring-clickhouse-auth
             - name: LOGS_URL
-              value: http://ch.monitoring.svc:8123
+              value: http://monitoring-clickhouse.monitoring.svc:8123
             - name: TRACES_URL
-              value: http://ch.monitoring.svc:8123
+              value: http://monitoring-clickhouse.monitoring.svc:8123
             - name: METRICS_URL
-              value: http://thanos-receive-router-ts-1.monitoring.svc:19291
+              value: http://thanos-receive-router-telemetry-stack.monitoring.svc:19291
             - name: PLATFORM_APISERVER_DOMAIN
-              value: https://10.2.0.104/
+              value: {{ .Values.platform.baseURL }}
           ports:
             - name: http
               containerPort: {{ $configListenPort }}
@@ -118,30 +118,6 @@ spec:
           {{- if .Values.kubeRBACProxy.config }}
           - --config-file=/etc/kube-rbac-proxy-config/config-file.yaml
           {{- end }}
-          - --tls-cert-file=/etc/proxy-tls/tls.crt
-          - --tls-key-file=/etc/proxy-tls/tls.key
-          - --tls-ca-file=/etc/proxy-tls/ca.crt
-          - --require-client-cert=true
-          - --cert-auth-ou=EnableTenant=true
-          env:
-            - name: CLICKHOUSE_USER
-              valueFrom:
-                secretKeyRef:
-                  key: username
-                  name: ch-auth
-            - name: CLICKHOUSE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  key: password
-                  name: ch-auth
-            - name: LOGS_URL
-              value: http://ch.monitoring.svc:8123
-            - name: TRACES_URL
-              value: http://ch.monitoring.svc:8123
-            - name: PLATFORM_APISERVER_DOMAIN
-              value: https://20.219.233.233/
-            - name: THANOS_RECEIVER_URL
-              value: http://thanos-receive-router-ts-1.monitoring.svc:19291
           volumeMounts:
             - name: kube-rbac-proxy-config
               mountPath: /etc/kube-rbac-proxy-config

@@ -2,12 +2,12 @@
 replicaCount: 1
 
 image:
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   # -- prom-label-proxy image registry
-  repository: quay.io/prometheuscommunity/prom-label-proxy
+  repository: ghcr.io/opnpulse/prom-label-proxy
   # -- prom-label-proxy image tag (immutable tags are recommended).
   # @default -- `.Chart.AppVersion`
-  tag: ""
+  tag: "v2026.4.24"
 
 # -- registry secret names as an array
 imagePullSecrets: []
@@ -59,12 +59,14 @@ livenessProbe:
     # -- This is the liveness check endpoint
     path: /healthz
     port: http
+    scheme: HTTPS
 
 readinessProbe:
   httpGet:
     # -- This is the readiness check endpoint
     path: /healthz
     port: http
+    scheme: HTTPS
 
 resources:
   # -- The resources limits for the prom-label-proxy container
@@ -294,72 +296,6 @@ extraManifests: null
   #     plaintext: Zm9vYmFy
   #     templated: '{{ print "foobar" | upper | b64enc }}'
 
-clickhouse:
-  enabled: false
-  # Global ClickHouse version and deletion policy
-  version: 24.4.1
-  deletionPolicy: WipeOut
-  deploymentMode: standalone
-  # Standalone deployment storage settings
-  storage:
-    storageClassName: ''
-    accessModes: [ReadWriteOnce]
-    resources:
-      requests:
-        storage: 1Gi
-  # Cluster deployment settings
-  clusterTopology:
-    clickHouseKeeper:
-      externallyManaged: false
-      replicas: 1
-      storage:
-        storageClassName: ''
-        accessModes: [ReadWriteOnce]
-        resources:
-          requests:
-            storage: 1Gi
-    # Note: The spec.cluster section is an array with a maximum of one item.
-    cluster:
-      name: cluster
-      shards: 2
-      replicas: 2
-      podTemplate:
-        spec:
-          containers:
-            - name: clickhouse
-              resources:
-                limits:
-                  memory: 4Gi
-                requests:
-                  cpu: 500m
-                  memory: 2Gi
-          initContainers:
-            - name: clickhouse-init
-              resources:
-                limits:
-                  memory: 1Gi
-                requests:
-                  cpu: 500m
-                  memory: 1Gi
-      storage:
-        storageClassName: ''
-        accessModes: [ReadWriteOnce]
-        resources:
-          requests:
-            storage: 1Gi
-  # TLS configuration for ClickHouse client CA certificate
-  tls:
-    clientCaCertificateRefs: []
-    # - name: "tls-ssl-minio"
-    #   key: public.crt
-  # S3-compatible storage configuration for ClickHouse tiered storage
-  s3:
-    endpoint: ""
-    accessKeyId: ""
-    secretAccessKey: ""
-    region: "us-east-1"
-    skipVerify: 1
-
 infra:
   host: chart-example.local
   hostType: domain
@@ -376,15 +312,17 @@ infra:
       cert: ""
       key: ""
     jks:
-      keystore:
-      truststore:
+      keystore: ""
+      truststore: ""
       password: ""
   dns:
     provider: "external" # external,cloudflare,route53,cloudDNS
     auth: {}
-  gatewayClassName: "ace"
+  tenantSpreadPolicy: ""
+
+platform:
+  baseURL: ""
 
 distro:
   openshift: false
   ubi: ""
-

@@ -1,15 +1,34 @@
----
-# Default values for appscode-otel-stack.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
-
-# This is to override the chart name.
-nameOverride: ''
-fullnameOverride: ''
 opentelemetry-kube-stack:
-  clusterName: "spoke-2"
+  crds:
+    installOtel: false
+
+  clusterName: ace
+
+  opentelemetry-operator:
+    admissionWebhooks:
+      certManager:
+        enabled: false
+    manager:
+      image:
+        repository: ghcr.io/open-telemetry/opentelemetry-operator/opentelemetry-operator
+        tag: "0.150.0"
+        imagePullPolicy: IfNotPresent
+      featureGatesMap:
+        operator.targetallocator.mtls: true
+      createRbacPermissions: true
+  admissionWebhooks:
+    autoGenerateCert:
+      enabled: true
+
   collectors:
     daemon:
+      resources:
+        limits:
+          cpu: 500m
+          memory: 2Gi
+        requests:
+          cpu: 200m
+          memory: 1Gi
       env:
         - name: K8S_NODE_NAME
           valueFrom:
@@ -27,9 +46,9 @@ opentelemetry-kube-stack:
         allocationStrategy: per-node
         prometheusCR:
           enabled: true
-          podMonitorSelector: { }
+          podMonitorSelector: {}
           scrapeInterval: "30s"
-          serviceMonitorSelector: { }
+          serviceMonitorSelector: {}
       config:
         receivers:
           k8sobjects:
@@ -38,12 +57,43 @@ opentelemetry-kube-stack:
               - name: namespaces
         exporters:
           otlp:
-            endpoint: opentelemetry-kube-stack-gateway-collector.monitoring.svc.cluster.local:4317
+            endpoint: appscode-otel-stack-gateway-collector.monitoring.svc.cluster.local:4317
             tls:
               insecure: true
           debug:
             verbosity: detailed
         processors:
+          transform/promote_pod:
+            error_mode: ignore
+            metric_statements:
+              - context: resource
+                statements:
+                  - set(attributes["k8s.pod.name"], attributes["pod"]) where attributes["pod"] != nil and attributes["pod"] != ""
+                  - set(attributes["k8s.namespace.name"], attributes["namespace"]) where
+                    attributes["namespace"] != nil and attributes["namespace"] != "" and
+                    attributes["pod"] != nil and attributes["pod"] != ""
+          transform/restore_labels:
+            error_mode: ignore
+            metric_statements:
+              - context: datapoint
+                statements:
+                  - set(attributes["namespace"], resource.attributes["namespace"]) where
+                    resource.attributes["namespace"] != nil and resource.attributes["namespace"] != ""
+                  - set(attributes["pod"], resource.attributes["pod"]) where resource.attributes["pod"]
+                    != nil and resource.attributes["pod"] != ""
+          groupbyattrs/split_kubelet:
+            keys:
+              - namespace
+              - pod
+          attributes/node:
+            actions:
+              - key: node
+                value: "${K8S_NODE_NAME}"
+                action: upsert
+          memory_limiter:
+            check_interval: 1s
+            limit_percentage: 75
+            spike_limit_percentage: 15
           k8sattributes:
             extract:
               metadata:
@@ -52,20 +102,24 @@ opentelemetry-kube-stack:
                 - tag_name: ace.client
                   key: ace.appscode.com/client-org
                   from: namespace
+          batch:
+            send_batch_size: 512
+            send_batch_max_size: 1024
+            timeout: 20s
         service:
           pipelines:
             metrics:
-              receivers: [ prometheus ]
-              processors: [ k8sattributes ]
-              exporters: [ otlp ]
+              receivers: [prometheus]
+              processors: [memory_limiter, groupbyattrs/split_kubelet, transform/promote_pod, k8sattributes, transform/restore_labels, attributes/node, batch]
+              exporters: [otlp]
             traces:
-              receivers: [ otlp ]
-              processors: [ k8sattributes ]
-              exporters: [ otlp ]
+              receivers: [otlp]
+              processors: [memory_limiter, k8sattributes]
+              exporters: [otlp]
             logs:
-              receivers: [ filelog ]
-              processors: [ k8sattributes ]
-              exporters: [ otlp ]
+              receivers: [filelog]
+              processors: [memory_limiter, k8sattributes]
+              exporters: [otlp]
       presets:
         logsCollection:
           enabled: true
@@ -77,6 +131,17 @@ opentelemetry-kube-stack:
           enabled: true
 
     cluster:
+      hostAliases:
+        - ip: "10.2.0.187"
+          hostnames:
+            - "prom-label-proxy.monitoring.svc.cluster.local"
+      resources:
+        limits:
+          cpu: 500m
+          memory: 1Gi
+        requests:
+          cpu: 200m
+          memory: 512Mi
       suffix: gateway
       enabled: true
       volumeMounts:
@@ -90,8 +155,8 @@ opentelemetry-kube-stack:
       labels:
         otel-collector-type: deployment
       image:
-        repository: rokibulhasan114/opentelemetry-collector-ace
-        tag: v0.1.0
+        repository: ghcr.io/opnpulse/opentelemetry-collector-ace
+        tag: v0.0.1
         pullPolicy: Always
       presets:
         clusterMetrics:
@@ -103,6 +168,7 @@ opentelemetry-kube-stack:
               grpc:
                 endpoint: 0.0.0.0:4317
                 include_metadata: true
+                max_recv_msg_size_mib: 32
               http:
                 endpoint: 0.0.0.0:4318
                 include_metadata: true
@@ -113,6 +179,10 @@ opentelemetry-kube-stack:
                 key: THANOS-TENANT
                 from_context: tenant-id
         processors:
+          memory_limiter:
+            check_interval: 1s
+            limit_percentage: 75
+            spike_limit_percentage: 20
           k8sattributes:
             extract:
               metadata:
@@ -124,10 +194,10 @@ opentelemetry-kube-stack:
           attributes/example:
             actions:
               - key: cluster
-                value: "spoke-2"
+                value: "ace"
                 action: upsert
           groupbyattrs:
-            keys: [ source_id ]
+            keys: [source_id]
           transform/tenant:
             error_mode: ignore
             metric_statements:
@@ -142,8 +212,8 @@ opentelemetry-kube-stack:
                   - set(resource.attributes["tenant"], "default")
                   - set(resource.attributes["tenant"], resource.attributes["k8s.namespace.name"])
                     where resource.attributes["ace.client"] == "true"
-          groupbyattrs/tenant:
-            keys: [ tenant ]
+          #        groupbyattrs/tenant:
+          #          keys: [tenant]
           context/tenant:
             actions:
               - action: upsert
@@ -151,16 +221,17 @@ opentelemetry-kube-stack:
                 value: anonymous
                 from_attribute: tenant
           batch/tenant:
-            send_batch_size: 1000
-            send_batch_max_size: 2000
-            timeout: 1s
+            send_batch_size: 256
+            send_batch_max_size: 512
             metadata_keys:
               - tenant-id
         exporters:
           debug:
             verbosity: detailed
           prometheusremotewrite:
-            endpoint: "https://10.2.0.187/api/v1/receive"
+            #          endpoint: "https://10.2.0.187:8443/api/v1/receive"
+            endpoint: "https://prom-label-proxy.monitoring.svc.cluster.local:10001/api/v1/receive"
+            timeout: 30s
             auth:
               authenticator: headers_setter
             target_info:
@@ -170,8 +241,17 @@ opentelemetry-kube-stack:
               cert_file: /etc/certs/tls.crt
               key_file: /etc/certs/tls.key
               insecure_skip_verify: false
+            retry_on_failure:
+              enabled: true
+              initial_interval: 5s
+              max_interval: 30s
+              max_elapsed_time: 120s
+            remote_write_queue:
+              queue_size: 200
+              num_consumers: 5
           clickhouse:
-            endpoint: "https:///10.2.0.187/?database=default&secure=true"
+            #          endpoint: "https://10.2.0.187:8443/?database=default&secure=true"
+            endpoint: "https://prom-label-proxy.monitoring.svc.cluster.local:10001/?database=default&secure=true"
             username: "ace"
             password: "QEFNeAa7hUGjJjVY"
             database: "default"
@@ -184,30 +264,33 @@ opentelemetry-kube-stack:
             logs_table_name: otel_logs
             timeout: 10s
             sending_queue:
-              queue_size: 10000
+              queue_size: 200
             retry_on_failure:
               enabled: true
               initial_interval: 5s
               max_interval: 30s
-              max_elapsed_time: 300s
+              max_elapsed_time: 120s
           otlp:
-            endpoint: opentelemetry-kube-stack-gateway-collector.monitoring.svc.cluster.local:4317
+            endpoint: appscode-otel-stack-gateway-collector.monitoring.svc.cluster.local:4317
             tls:
               insecure: true
         service:
-          extensions: [ headers_setter ]
+          extensions: [headers_setter]
           pipelines:
             logs:
-              receivers: [ otlp ]
-              exporters: [ clickhouse ]
+              processors: [memory_limiter]
+              receivers: [otlp]
+              exporters: [clickhouse]
             metrics:
-              receivers: [ otlp ]
-              processors: [ attributes/example, groupbyattrs, transform/tenant, groupbyattrs/tenant, context/tenant, batch/tenant ]
-              exporters: [ prometheusremotewrite ]
+              receivers: [otlp]
+              #            processors: [attributes/example, groupbyattrs, transform/tenant, groupbyattrs/tenant, context/tenant, batch/tenant]
+              processors: [memory_limiter, attributes/example, transform/tenant, context/tenant, batch/tenant]
+              exporters: [prometheusremotewrite]
             traces:
-              receivers: [ otlp ]
-              processors: [ k8sattributes, attributes/example, groupbyattrs, transform/tenant, groupbyattrs/tenant, context/tenant, batch/tenant ]
-              exporters: [ clickhouse ]
+              receivers: [otlp]
+              #            processors: [k8sattributes, attributes/example, groupbyattrs, transform/tenant, groupbyattrs/tenant, context/tenant, batch/tenant]
+              processors: [memory_limiter, attributes/example, transform/tenant, context/tenant, batch/tenant]
+              exporters: [clickhouse]
 
   instrumentation:
     enabled: false

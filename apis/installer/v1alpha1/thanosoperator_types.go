@@ -55,7 +55,6 @@ type ThanosOperatorSpec struct {
 }
 
 type ThanosObjectStorage struct {
-	Enabled bool `json:"enabled"`
 	//+optional
 	Bucket string `json:"bucket"`
 	//+optional
@@ -66,6 +65,8 @@ type ThanosObjectStorage struct {
 	SecretKey string `json:"secretKey"`
 	//+optional
 	Prefix string `json:"prefix"`
+	//+optional
+	Region string `json:"region"`
 }
 
 type ThanosOperatorManager struct {

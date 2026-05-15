@@ -43,7 +43,7 @@ spec:
           securityContext:
             {{- toYaml .Values.image.securityContext | nindent 12 }}
           {{- end }}
-          image: rokibulhasan114/tenant-operator:v0.0.1
+          image: {{ include "image.registry" . }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}{{ include "operator.ubi" . }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           command:
             - /manager

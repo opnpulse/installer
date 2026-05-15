@@ -1,0 +1,18 @@
+---
+project:
+  name: OpenTelemetry Stack
+  shortName: OpenTelemetry Stack
+  url: https://github.com/ops-center
+  description: OpenTelemetry Stack
+  app: OpenTelemetry Stack
+repository:
+  url: https://charts.appscode.com/stable/
+  name: appscode
+chart:
+  name: opentelemetry-kube-stack
+  values: -- generate from values file --
+  valuesExample: -- generate from values file --
+prerequisites: [Kubernetes 1.25+]
+release:
+  name: opentelemetry-kube-stack
+  namespace: monitoring

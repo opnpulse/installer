@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: thanoscompacts.monitoring.thanos.io
 spec:
   group: monitoring.thanos.io
@@ -73,6 +73,23 @@ spec:
                                     type: string
                                 required:
                                 - fieldPath
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              fileKeyRef:
+                                properties:
+                                  key:
+                                    type: string
+                                  optional:
+                                    default: false
+                                    type: boolean
+                                  path:
+                                    type: string
+                                  volumeName:
+                                    type: string
+                                required:
+                                - key
+                                - path
+                                - volumeName
                                 type: object
                                 x-kubernetes-map-type: atomic
                               resourceFieldRef:
@@ -503,6 +520,29 @@ spec:
                       type: object
                     restartPolicy:
                       type: string
+                    restartPolicyRules:
+                      items:
+                        properties:
+                          action:
+                            type: string
+                          exitCodes:
+                            properties:
+                              operator:
+                                type: string
+                              values:
+                                items:
+                                  format: int32
+                                  type: integer
+                                type: array
+                                x-kubernetes-list-type: set
+                            required:
+                            - operator
+                            type: object
+                        required:
+                        - action
+                        type: object
+                      type: array
+                      x-kubernetes-list-type: atomic
                     securityContext:
                       properties:
                         allowPrivilegeEscalation:
@@ -742,6 +782,23 @@ spec:
                               type: string
                           required:
                           - fieldPath
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        fileKeyRef:
+                          properties:
+                            key:
+                              type: string
+                            optional:
+                              default: false
+                              type: boolean
+                            path:
+                              type: string
+                            volumeName:
+                              type: string
+                          required:
+                          - key
+                          - path
+                          - volumeName
                           type: object
                           x-kubernetes-map-type: atomic
                         resourceFieldRef:
@@ -1456,6 +1513,29 @@ spec:
                                     type: array
                                     x-kubernetes-list-type: atomic
                                 type: object
+                              podCertificate:
+                                properties:
+                                  certificateChainPath:
+                                    type: string
+                                  credentialBundlePath:
+                                    type: string
+                                  keyPath:
+                                    type: string
+                                  keyType:
+                                    type: string
+                                  maxExpirationSeconds:
+                                    format: int32
+                                    type: integer
+                                  signerName:
+                                    type: string
+                                  userAnnotations:
+                                    additionalProperties:
+                                      type: string
+                                    type: object
+                                required:
+                                - keyType
+                                - signerName
+                                type: object
                               secret:
                                 properties:
                                   items:
@@ -2082,6 +2162,10 @@ spec:
                         x-kubernetes-list-type: atomic
                     type: object
                 type: object
+              annotations:
+                additionalProperties:
+                  type: string
+                type: object
               baseImage:
                 type: string
               blockConfig:
@@ -2155,39 +2239,6 @@ spec:
                     format: int32
                     type: integer
                 type: object
-              featureGates:
-                default:
-                  serviceMonitor:
-                    enable: true
-                properties:
-                  podDisruptionBudget:
-                    default:
-                      enable: true
-                    properties:
-                      enable:
-                        type: boolean
-                      maxUnavailable:
-                        format: int32
-                        type: integer
-                      minAvailable:
-                        format: int32
-                        type: integer
-                    type: object
-                  prometheusRuleEnabled:
-                    default: true
-                    type: boolean
-                  serviceMonitor:
-                    default:
-                      enable: true
-                    properties:
-                      enable:
-                        type: boolean
-                      labels:
-                        additionalProperties:
-                          type: string
-                        type: object
-                    type: object
-                type: object
               imagePullPolicy:
                 default: IfNotPresent
                 enum:
@@ -2221,6 +2272,9 @@ spec:
                 - warn
                 - error
                 type: string
+              minReadySeconds:
+                format: int32
+                type: integer
               nodeSelector:
                 additionalProperties:
                   type: string
@@ -2240,6 +2294,35 @@ spec:
                 x-kubernetes-map-type: atomic
               paused:
                 type: boolean
+              persistentVolumeClaimRetentionPolicy:
+                default:
+                  whenDeleted: Delete
+                  whenScaled: Delete
+                properties:
+                  whenDeleted:
+                    enum:
+                    - Retain
+                    - Delete
+                    type: string
+                  whenScaled:
+                    enum:
+                    - Retain
+                    - Delete
+                    type: string
+                type: object
+              podDisruptionBudgetConfig:
+                default:
+                  enable: true
+                properties:
+                  enable:
+                    type: boolean
+                type: object
+              podManagementPolicy:
+                default: OrderedReady
+                enum:
+                - OrderedReady
+                - Parallel
+                type: string
               resourceRequirements:
                 properties:
                   claims:
@@ -2292,6 +2375,85 @@ spec:
                 - oneHour
                 - raw
                 type: object
+              securityContext:
+                properties:
+                  appArmorProfile:
+                    properties:
+                      localhostProfile:
+                        type: string
+                      type:
+                        type: string
+                    required:
+                    - type
+                    type: object
+                  fsGroup:
+                    format: int64
+                    type: integer
+                  fsGroupChangePolicy:
+                    type: string
+                  runAsGroup:
+                    format: int64
+                    type: integer
+                  runAsNonRoot:
+                    type: boolean
+                  runAsUser:
+                    format: int64
+                    type: integer
+                  seLinuxChangePolicy:
+                    type: string
+                  seLinuxOptions:
+                    properties:
+                      level:
+                        type: string
+                      role:
+                        type: string
+                      type:
+                        type: string
+                      user:
+                        type: string
+                    type: object
+                  seccompProfile:
+                    properties:
+                      localhostProfile:
+                        type: string
+                      type:
+                        type: string
+                    required:
+                    - type
+                    type: object
+                  supplementalGroups:
+                    items:
+                      format: int64
+                      type: integer
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  supplementalGroupsPolicy:
+                    type: string
+                  sysctls:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        value:
+                          type: string
+                      required:
+                      - name
+                      - value
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  windowsOptions:
+                    properties:
+                      gmsaCredentialSpec:
+                        type: string
+                      gmsaCredentialSpecName:
+                        type: string
+                      hostProcess:
+                        type: boolean
+                      runAsUserName:
+                        type: string
+                    type: object
+                type: object
               shardingConfig:
                 items:
                   properties:
@@ -2317,9 +2479,19 @@ spec:
                 x-kubernetes-list-map-keys:
                 - shardName
                 x-kubernetes-list-type: map
-              storageSize:
-                pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                type: string
+              storage:
+                properties:
+                  size:
+                    pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                    type: string
+                  storageClass:
+                    type: string
+                required:
+                - size
+                type: object
+              terminationGracePeriodSeconds:
+                format: int64
+                type: integer
               timeRangeConfig:
                 properties:
                   maxTime:
@@ -2347,10 +2519,22 @@ spec:
                 type: array
               version:
                 type: string
+              verticalCompactionConfig:
+                properties:
+                  deduplicationFunc:
+                    enum:
+                    - ""
+                    - penalty
+                    type: string
+                  replicaLabels:
+                    items:
+                      type: string
+                    type: array
+                type: object
             required:
             - objectStorageConfig
             - retentionConfig
-            - storageSize
+            - storage
             type: object
           status:
             properties:

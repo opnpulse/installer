@@ -25,8 +25,10 @@ import (
 	"kmodules.xyz/image-packer/pkg/lib"
 )
 
-var ignoreMissingList = []string{
-	"ghcr.io/appscode/config-syncer:v0.15.4",
+var ignoreMissingList = []string{}
+
+var archSkipList = []string{
+	"ghcr.io/cloudoperators/greenhouse-extensions-integration-test:main",
 }
 
 func Test_CheckImageArchitectures(t *testing.T) {
@@ -37,7 +39,7 @@ func Test_CheckImageArchitectures(t *testing.T) {
 
 	if err := lib.CheckImageArchitectures([]string{
 		filepath.Join(dir, "catalog", "imagelist.yaml"),
-	}, nil, ignoreMissingList); err != nil {
+	}, archSkipList, ignoreMissingList); err != nil {
 		t.Errorf("CheckImageArchitectures() error = %v", err)
 	}
 }
@@ -60,7 +62,7 @@ func Test_CheckUBIImageArchitectures(t *testing.T) {
 	values := map[string]string{
 		"sidekick": ubiOperator,
 	}
-	if err := lib.CheckHelmChartImageArchitectures(filepath.Join(dir, "charts"), values, nil, ignoreMissingList); err != nil {
+	if err := lib.CheckHelmChartImageArchitectures(filepath.Join(dir, "charts"), values, archSkipList, ignoreMissingList); err != nil {
 		t.Errorf("CheckUBIImageArchitectures() error = %v", err)
 	}
 }

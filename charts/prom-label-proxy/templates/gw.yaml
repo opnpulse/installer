@@ -4,7 +4,7 @@ metadata:
   name: {{ include "prom-label-proxy.name" . }}-gw
   namespace: {{ template "prom-label-proxy.namespace" . }}
 spec:
-  gatewayClassName: {{ .Values.infra.gatewayClassName }}
+  gatewayClassName: ace
   listeners:
     - name: https
       port: 443
@@ -15,6 +15,11 @@ spec:
           - kind: Secret
             name: {{ include "prom-label-proxy.name" . }}-gw-cert
             namespace: {{ template "prom-label-proxy.namespace" . }}
+    - name: mtls
+      port: 10001
+      protocol: TLS
+      tls:
+        mode: Passthrough
 
 ---
 
@@ -36,9 +41,6 @@ spec:
         - path:
             type: PathPrefix
             value: /telemetry
-        - path:
-            type: PathPrefix
-            value: /api/v1
       backendRefs:
         - name: {{ include "prom-label-proxy.name" . }}
           port: 8080
@@ -59,5 +61,27 @@ spec:
     caCertificateRefs:
       - group: ""
         kind: Secret
-        name: {{ include "prom-label-proxy.name" . }}-gw-cert
+        name: otel-client-cert
     hostname: {{ include "prom-label-proxy.name" . }}.{{ template "prom-label-proxy.namespace" . }}.svc.cluster.local
+
+---
+
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TLSRoute
+metadata:
+  name: prom-label-proxy-mtls-route
+  namespace: monitoring
+spec:
+  parentRefs:
+    - name: prom-label-proxy-gw
+      namespace: monitoring
+      sectionName: mtls
+  hostnames:
+    - {{ include "prom-label-proxy.name" . }}.{{ template "prom-label-proxy.namespace" . }}.svc.cluster.local
+    {{- if eq .Values.infra.hostType "domain" }}
+    - {{ .Values.infra.host }}
+    {{- end }}
+  rules:
+  - backendRefs:
+    - name: {{ include "prom-label-proxy.fullname" . }}-passthrough
+      port: 8080
