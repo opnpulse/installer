@@ -2,7 +2,7 @@ apiVersion: v2
 name: prom-label-proxy
 description: A proxy that enforces a given label in a given PromQL query.
 type: application
-version: v2026.5.22
+version: v2026.6.2
 # renovate: github=prometheus-community/prom-label-proxy
 appVersion: v0.12.1
 home: "https://github.com/prometheus-community/prom-label-proxy"
