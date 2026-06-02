@@ -50,22 +50,6 @@ type ThanosOperatorSpec struct {
 	Metrics     ThanosOperatorMetrics `json:"metrics"`
 	CertManager ThanosFeatureFlag     `json:"certManager"`
 	Prometheus  ThanosFeatureFlag     `json:"prometheus"`
-	// +optional
-	ObjectStorage ThanosObjectStorage `json:"objectStorage"`
-}
-
-type ThanosObjectStorage struct {
-	Enabled bool `json:"enabled"`
-	//+optional
-	Bucket string `json:"bucket"`
-	//+optional
-	Endpoint string `json:"endpoint"`
-	//+optional
-	AccessKey string `json:"accessKey"`
-	//+optional
-	SecretKey string `json:"secretKey"`
-	//+optional
-	Prefix string `json:"prefix"`
 }
 
 type ThanosOperatorManager struct {

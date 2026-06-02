@@ -149,6 +149,15 @@ spec:
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 65534
+          seccompProfile:
+            type: RuntimeDefault
       volumes:
         {{- if .Values.volumes }}
         {{- tpl (toYaml .Values.volumes | nindent 8) . }}
