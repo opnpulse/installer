@@ -49,8 +49,7 @@ type InboxServerSpec struct {
 	Dns              DnsSpec                `json:"dns"`
 	James            JamesSpec              `json:"james"`
 	ServiceMonitor   ServiceMonitorSpec     `json:"serviceMonitor"`
-	Ingress          IngressSpec            `json:"ingress"`
-	AdminIngress     IngressSpec            `json:"adminIngress"`
+	Gateway          GatewaySpec            `json:"gateway"`
 	Postgresql       PostgresqlSpec         `json:"postgresql"`
 	Migrate          InboxServerMigrateSpec `json:"migrate"`
 	// +optional

@@ -66,24 +66,17 @@ serviceMonitor:
     change-me: change-me
   # Scrape interval. Use Prometheus default value if not specified
   interval: 30s
-ingress:
-  enabled: false
-  className: ''
-  annotations: {}
-  # kubernetes.io/ingress.class: nginx
-  # kubernetes.io/tls-acme: "true"
-  # cert-manager.io/cluster-issuer: name-of-the-cluster-issuer
-  tls:
-    secretName: the-name-of-a-secret
-adminIngress:
-  enabled: false
-  className: ''
-  annotations: {}
-  # kubernetes.io/ingress.class: nginx
-  # kubernetes.io/tls-acme: "true"
-  # cert-manager.io/cluster-issuer: name-of-the-cluster-issuer
-  tls:
-    secretName: the-name-of-a-secret
+gateway:
+  jmap:
+    enabled: false
+  admin:
+    enabled: false
+  # parent Gateway refs for generated HTTPRoutes
+  parentRefs: []
+  # - name: ace
+  #   sectionName: http
+  # - name: ace
+  #   sectionName: https
 ###
 # Please refer to the values.yaml from the Helm package for databases
 # for a better explanation of the Cassandra parameters.

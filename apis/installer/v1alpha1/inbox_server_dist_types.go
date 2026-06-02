@@ -49,8 +49,7 @@ type InboxServerDistributedSpec struct {
 	Dns              DnsSpec              `json:"dns"`
 	James            JamesDistributedSpec `json:"james"`
 	ServiceMonitor   ServiceMonitorSpec   `json:"serviceMonitor"`
-	Ingress          IngressSpec          `json:"ingress"`
-	AdminIngress     IngressSpec          `json:"adminIngress"`
+	Gateway          GatewaySpec          `json:"gateway"`
 	Cassandra        CassandraSpec        `json:"cassandra"`
 	Opensearch       OpensearchSpec       `json:"opensearch"`
 	Rabbitmq         RabbitmqSpec         `json:"rabbitmq"`
@@ -115,13 +114,6 @@ type ServiceMonitorSpec struct {
 	Enabled          bool              `json:"enabled"`
 	AdditionalLabels map[string]string `json:"additionalLabels"`
 	Interval         string            `json:"interval"`
-}
-
-type IngressSpec struct {
-	Enabled     bool              `json:"enabled"`
-	ClassName   string            `json:"className"`
-	Annotations map[string]string `json:"annotations"`
-	TLS         TLSSpec           `json:"tls"`
 }
 
 type TLSSpec struct {

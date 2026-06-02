@@ -1,0 +1,39 @@
+{{- if and .Values.gateway.jmap.enabled .Values.gateway.parentRefs -}}
+{{- $fullName := printf "%s-jmap" (include "inbox-server-distributed.fullname" .) -}}
+{{- $svcPort := 80 -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $fullName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "inbox-server-distributed.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    {{- range .Values.gateway.parentRefs }}
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ .name }}
+      {{- with .namespace }}
+      namespace: {{ . }}
+      {{- end }}
+      {{- with .sectionName }}
+      sectionName: {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- if .Values.dns.domain }}
+  hostnames:
+    - {{ .Values.dns.domain | quote }}
+  {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /jmap
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: {{ $fullName }}
+          port: {{ $svcPort }}
+          weight: 1
+{{- end }}

@@ -1,0 +1,45 @@
+{{- if and .Values.gateway.admin.enabled .Values.gateway.parentRefs -}}
+{{- $fullName := printf "%s-admin" (include "inbox-server-distributed.fullname" .) -}}
+{{- $svcPort := 8000 -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $fullName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "inbox-server-distributed.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    {{- range .Values.gateway.parentRefs }}
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ .name }}
+      {{- with .namespace }}
+      namespace: {{ . }}
+      {{- end }}
+      {{- with .sectionName }}
+      sectionName: {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- if .Values.dns.domain }}
+  hostnames:
+    - {{ .Values.dns.domain | quote }}
+  {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /inbox-admin
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: {{ $fullName }}
+          port: {{ $svcPort }}
+          weight: 1
+{{- end }}

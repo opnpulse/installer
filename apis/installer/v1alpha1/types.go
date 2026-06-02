@@ -124,3 +124,22 @@ type TLSConfig struct {
 type NetworkPolicySpec struct {
 	Enabled bool `json:"enabled"`
 }
+
+type GatewaySpec struct {
+	// +optional
+	ParentRefs []GatewayParentRef `json:"parentRefs"`
+	Jmap       GatewayRouteSpec   `json:"jmap"`
+	Admin      GatewayRouteSpec   `json:"admin"`
+}
+
+type GatewayRouteSpec struct {
+	Enabled bool `json:"enabled"`
+}
+
+type GatewayParentRef struct {
+	Name string `json:"name"`
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+	// +optional
+	SectionName string `json:"sectionName,omitempty"`
+}
