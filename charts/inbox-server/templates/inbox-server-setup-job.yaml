@@ -1,0 +1,206 @@
+{{- $jobName := printf "%s-setup" (include "inbox-server.fullname" .) -}}
+{{- $emailDomain := default "ace.internal" .Values.dns.emailDomain -}}
+{{- $recipientEmail := printf "usr$1@%s" $emailDomain -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $jobName }}-alert
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+data:
+  webhook_alert_postgres_sample.yaml: |
+    apiVersion: inbox.monitoring.appscode.com/v1alpha1
+    kind: WebhookAlert
+    metadata:
+      name: {{ $jobName }}-sample
+      namespace: {{ .Release.Namespace }}
+    alertGroup:
+      receiver: webhook_receiver
+      status: firing
+      alerts:
+        - status: firing
+          labels:
+            alertname: postgresql-instance-down
+            slot_name: {{ .Release.Namespace }}_pgoutbox_slot
+            app: {{ .Release.Namespace }}-db
+            app_namespace: {{ .Release.Namespace }}
+            container: postgres
+            endpoint: metrics
+            instance: 10.2.0.49:56790
+            job: postgresql-stats
+            k8s_group: kubedb.com
+            k8s_kind: Postgres
+            k8s_resource: postgreses
+            namespace: {{ .Release.Namespace }}
+            pod: {{ .Release.Namespace }}-db-0
+            prometheus: {{ .Release.Namespace }}/prometheus-kube-prometheus-prometheus
+            service: postgres-stats
+            severity: critical
+          annotations:
+            description: eas test description
+            summary: eas test summary
+          startsAt: '2025-11-14T12:01:40Z'
+          endsAt: '0001-01-01T00:00:00Z'
+          generatorURL: http://prometheus-kube-prometheus-prometheus.{{ .Release.Namespace }}:9090/graph?g0.expr=time%28%29+-+pg_postmaster_start_time_seconds%7Bjob%3D%22postgres-stats%22%2Cnamespace%3D%22{{ .Release.Namespace }}%22%7D+%3C+60&g0.tab=1
+          fingerprint: f3ef81f2de748079
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $jobName }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $jobName }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+rules:
+  - apiGroups: ["inbox.monitoring.appscode.com"]
+    resources: ["webhookalerts"]
+    verbs: ["get", "create", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $jobName }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $jobName }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $jobName }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $jobName }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-weight": "10"
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 2
+  template:
+    spec:
+      serviceAccountName: {{ $jobName }}
+      restartPolicy: OnFailure
+      volumes:
+        - name: samples
+          configMap:
+            name: {{ $jobName }}-alert
+      containers:
+        - name: setup
+          image: bitnami/kubectl:latest
+          volumeMounts:
+            - name: samples
+              mountPath: /samples
+          env:
+            - name: RELEASE_NAMESPACE
+              value: {{ .Release.Namespace | quote }}
+            - name: INBOX_SERVER_RECIPIENT_EMAIL
+              value: {{ $recipientEmail | quote }}
+            - name: INBOX_SERVER_RECIPIENT_PASSWORD
+              value: "password"
+            - name: INBOX_SERVER_EMAIL_DOMAIN
+              value: {{ $emailDomain | quote }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+
+              retry() {
+                max="$1"
+                delay="$2"
+                shift 2
+                i=0
+                until "$@"; do
+                  i=$((i+1))
+                  [ $i -ge $max ] && echo "ERROR: giving up after $max attempts: $*" && return 1
+                  echo "attempt $i/$max failed, retrying in ${delay}s..."
+                  sleep "$delay"
+                done
+              }
+
+              inbox_agent_ready() {
+                kubectl get --raw /apis/inbox.monitoring.appscode.com/v1alpha1 >/dev/null 2>&1
+              }
+              retry 30 5 inbox_agent_ready
+              echo "inbox-agent API is reachable"
+
+              get_pod() {
+                POD="$(kubectl -n "$RELEASE_NAMESPACE" get pod \
+                  -l app.kubernetes.io/component=jmap,app.kubernetes.io/instance={{ .Release.Name }},app.kubernetes.io/name={{ include "inbox-server.name" . }} \
+                  -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)"
+                [ -n "$POD" ]
+              }
+              retry 20 5 get_pod
+              retry 20 5 kubectl -n "$RELEASE_NAMESPACE" wait --for=condition=Ready "pod/$POD" --timeout=5s
+              echo "inbox-server pod: $POD"
+
+              retry 30 5 kubectl apply --validate=false -f /samples/webhook_alert_postgres_sample.yaml -n "$RELEASE_NAMESPACE"
+
+              user_exists() {
+                kubectl -n "$RELEASE_NAMESPACE" exec "$POD" -- james-cli ListUsers 2>/dev/null \
+                  | grep -Fx "$INBOX_SERVER_RECIPIENT_EMAIL" >/dev/null
+              }
+
+              ensure_user() {
+                if user_exists; then
+                  echo "inbox-server user already exists: $INBOX_SERVER_RECIPIENT_EMAIL"
+                  return 0
+                fi
+                kubectl -n "$RELEASE_NAMESPACE" exec "$POD" -- james-cli AddUser "$INBOX_SERVER_RECIPIENT_EMAIL" "$INBOX_SERVER_RECIPIENT_PASSWORD"
+              }
+              retry 10 5 ensure_user
+
+              get_ns_email() {
+                NS_EMAIL="$(kubectl -n "$RELEASE_NAMESPACE" exec "$POD" -- james-cli ListMappings 2>/dev/null \
+                  | grep -o "group:ns[^= ]*@$INBOX_SERVER_EMAIL_DOMAIN" | head -n 1 | sed 's/^group://')"
+                [ -n "$NS_EMAIL" ]
+              }
+              retry 20 5 get_ns_email
+              echo "NS email: $NS_EMAIL"
+
+              LOCALPART="${NS_EMAIL%@*}"
+              DOMAIN="${NS_EMAIL#*@}"
+
+              mapping_exists() {
+                kubectl -n "$RELEASE_NAMESPACE" exec "$POD" -- james-cli ListMappings 2>/dev/null \
+                  | grep -F "${LOCALPART}@${DOMAIN}=${INBOX_SERVER_RECIPIENT_EMAIL}" >/dev/null
+              }
+
+              ensure_mapping() {
+                if mapping_exists; then
+                  echo "inbox-server mapping already exists: ${LOCALPART}@${DOMAIN} -> ${INBOX_SERVER_RECIPIENT_EMAIL}"
+                  return 0
+                fi
+                kubectl -n "$RELEASE_NAMESPACE" exec "$POD" -- james-cli AddAddressMapping "$LOCALPART" "$DOMAIN" "$INBOX_SERVER_RECIPIENT_EMAIL"
+              }
+              retry 10 5 ensure_mapping
+              echo "Done."
