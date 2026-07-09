@@ -127,6 +127,8 @@ type NetworkPolicySpec struct {
 
 type GatewaySpec struct {
 	// +optional
+	Annotations map[string]string `json:"annotations"`
+	// +optional
 	ParentRefs []GatewayParentRef `json:"parentRefs"`
 	Jmap       GatewayRouteSpec   `json:"jmap"`
 	Admin      GatewayRouteSpec   `json:"admin"`

@@ -54,6 +54,7 @@ serviceMonitor:
   # Scrape interval. Use Prometheus default value if not specified
   interval: 30s
 gateway:
+  annotations: null
   jmap:
     enabled: false
   admin:
