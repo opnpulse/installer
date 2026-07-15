@@ -25,6 +25,16 @@ cleanupJob:
     digest: ""
   # To use the existingServiceAccount
   existingServiceAccount: ""
+  # Security context for the cleanup job container
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
 
 # Should the CRDs be installed by this chart.
 crds:

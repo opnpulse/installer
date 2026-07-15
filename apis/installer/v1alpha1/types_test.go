@@ -26,7 +26,8 @@ import (
 )
 
 func TestDefaultValues(t *testing.T) {
-	checker := schemachecker.New(os.DirFS("../../.."),
+	checker := schemachecker.New(
+		os.DirFS("../../.."),
 		schemachecker.TestCase{Obj: v1alpha1.AppscodeOtelStackSpec{}},
 		schemachecker.TestCase{Obj: v1alpha1.InboxAgentSpec{}},
 		schemachecker.TestCase{Obj: v1alpha1.InboxServerDistributedSpec{}},

@@ -1,0 +1,5 @@
+opentelemetry-operator:
+  fullnameOverride: opentelemetry-operator
+  admissionWebhooks:
+    certManager:
+      enabled: false

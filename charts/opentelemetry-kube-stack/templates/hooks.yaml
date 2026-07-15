@@ -69,6 +69,10 @@ spec:
         {{- else }}
         image: "{{ $.Values.cleanupJob.image.repository }}:{{ $.Values.cleanupJob.image.tag }}"
         {{- end }}
+        {{- with $.Values.cleanupJob.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         args:
           - "delete"
           - "instrumentations,opampbridges,opentelemetrycollectors"

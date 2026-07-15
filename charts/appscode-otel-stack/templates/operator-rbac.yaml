@@ -37,4 +37,5 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: opentelemetry-operator
-    namespace: monitoring
+    namespace: {{ .Release.Namespace }}
+    
