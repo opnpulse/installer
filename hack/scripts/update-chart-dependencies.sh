@@ -17,6 +17,8 @@
 set -e
 
 helm repo add appscode https://charts.appscode.com/stable/ || true
+helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts || true
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts || true
 
 for chart in charts/*/; do
     if [ -f "${chart}Chart.yaml" ] && grep -q "^dependencies:" "${chart}Chart.yaml"; then

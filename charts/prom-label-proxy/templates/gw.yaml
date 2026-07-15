@@ -13,7 +13,7 @@ spec:
         mode: Terminate
         certificateRefs:
           - kind: Secret
-            name: {{ include "prom-label-proxy.name" . }}-gw-cert
+            name: {{ template "prom-label-proxy.namespace" . }}-gw-cert
             namespace: {{ template "prom-label-proxy.namespace" . }}
     - name: mtls
       port: 10001
@@ -61,7 +61,7 @@ spec:
     caCertificateRefs:
       - group: ""
         kind: Secret
-        name: {{ include "prom-label-proxy.name" . }}-gw-cert
+        name: {{ template "prom-label-proxy.namespace" . }}-gw-cert
     hostname: {{ include "prom-label-proxy.name" . }}.{{ template "prom-label-proxy.namespace" . }}.svc.cluster.local
 
 ---
@@ -70,11 +70,11 @@ apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: TLSRoute
 metadata:
   name: prom-label-proxy-mtls-route
-  namespace: monitoring
+  namespace: {{ template "prom-label-proxy.namespace" . }}
 spec:
   parentRefs:
-    - name: prom-label-proxy-gw
-      namespace: monitoring
+    - name: {{ include "prom-label-proxy.name" . }}-gw
+      namespace: {{ template "prom-label-proxy.namespace" . }}
       sectionName: mtls
   hostnames:
     - {{ include "prom-label-proxy.name" . }}.{{ template "prom-label-proxy.namespace" . }}.svc.cluster.local
