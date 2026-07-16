@@ -2,8 +2,8 @@ apiVersion: v2
 name: tenant-operator
 description: A Helm chart for Tenant Operator
 type: application
-version: v2026.6.2
-appVersion: v0.0.1
+version: v2026.7.15
+appVersion: v0.0.2
 home: https://github.com/opnpluse/tenant-operator
 icon: https://cdn.appscode.com/images/products/kubedb/kubedb-icon.png
 sources:

@@ -7,8 +7,8 @@
 ```bash
 $ helm repo add appscode https://charts.appscode.com/stable/
 $ helm repo update
-$ helm search repo appscode/appscode-otel-stack --version=v2026.6.2
-$ helm upgrade -i appscode-otel-stack appscode/appscode-otel-stack -n monitoring --create-namespace --version=v2026.6.2
+$ helm search repo appscode/appscode-otel-stack --version=v2026.7.15
+$ helm upgrade -i appscode-otel-stack appscode/appscode-otel-stack -n monitoring --create-namespace --version=v2026.7.15
 ```
 
 ## Introduction
@@ -24,7 +24,7 @@ This chart deploys AppsCode OpenTelemetry Stack on a [Kubernetes](http://kuberne
 To install/upgrade the chart with the release name `appscode-otel-stack`:
 
 ```bash
-$ helm upgrade -i appscode-otel-stack appscode/appscode-otel-stack -n monitoring --create-namespace --version=v2026.6.2
+$ helm upgrade -i appscode-otel-stack appscode/appscode-otel-stack -n monitoring --create-namespace --version=v2026.7.15
 ```
 
 The command deploys AppsCode OpenTelemetry Stack on the Kubernetes cluster in the default configuration. The [configuration](#configuration) section lists the parameters that can be configured during installation.
@@ -96,7 +96,7 @@ The following table lists the configurable parameters of the `appscode-otel-stac
 | opentelemetry-kube-stack.collectors.cluster.enabled                                                                  |                                                                   | <code>true</code>                                                                                        |
 | opentelemetry-kube-stack.collectors.cluster.labels.otel-collector-type                                               |                                                                   | <code>deployment</code>                                                                                  |
 | opentelemetry-kube-stack.collectors.cluster.image.repository                                                         |                                                                   | <code>ghcr.io/opnpulse/opentelemetry-collector-ace</code>                                                |
-| opentelemetry-kube-stack.collectors.cluster.image.tag                                                                |                                                                   | <code>v0.0.1</code>                                                                                      |
+| opentelemetry-kube-stack.collectors.cluster.image.tag                                                                |                                                                   | <code>v0.0.2</code>                                                                                      |
 | opentelemetry-kube-stack.collectors.cluster.image.pullPolicy                                                         |                                                                   | <code>Always</code>                                                                                      |
 | opentelemetry-kube-stack.collectors.cluster.presets.clusterMetrics.enabled                                           |                                                                   | <code>false</code>                                                                                       |
 | opentelemetry-kube-stack.collectors.cluster.config.receivers.otlp.protocols.grpc.endpoint                            |                                                                   | <code>0.0.0.0:4317</code>                                                                                |
@@ -160,12 +160,12 @@ The following table lists the configurable parameters of the `appscode-otel-stac
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm upgrade -i`. For example:
 
 ```bash
-$ helm upgrade -i appscode-otel-stack appscode/appscode-otel-stack -n monitoring --create-namespace --version=v2026.6.2 --set opentelemetry-kube-stack.clusterName=ace
+$ helm upgrade -i appscode-otel-stack appscode/appscode-otel-stack -n monitoring --create-namespace --version=v2026.7.15 --set opentelemetry-kube-stack.clusterName=ace
 ```
 
 Alternatively, a YAML file that specifies the values for the parameters can be provided while
 installing the chart. For example:
 
 ```bash
-$ helm upgrade -i appscode-otel-stack appscode/appscode-otel-stack -n monitoring --create-namespace --version=v2026.6.2 --values values.yaml
+$ helm upgrade -i appscode-otel-stack appscode/appscode-otel-stack -n monitoring --create-namespace --version=v2026.7.15 --values values.yaml
 ```
