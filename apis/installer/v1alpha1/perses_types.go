@@ -226,6 +226,7 @@ type PersesConfigDatabaseSQL struct {
 	Addr                 string `json:"addr"`
 	DbName               string `json:"db_name"`
 	AllowNativePasswords bool   `json:"allow_native_passwords"`
+	CaseSensitive        bool   `json:"case_sensitive"`
 }
 
 type PersesConfigProvisioning struct {

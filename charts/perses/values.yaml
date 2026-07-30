@@ -265,6 +265,7 @@ config:
       addr: "ace-db.ace.svc:5432"
       db_name: "ace"
       allow_native_passwords: true
+      case_sensitive: true
 
   # -- provisioning config
   provisioning:
