@@ -97,6 +97,8 @@ spec:
           mountPath: "/etc/perses/config"
         - mountPath: "/etc/perses/storage"
           name: storage
+        - mountPath: "/etc/perses/plugins"
+          name: plugins
           {{- if .Values.tls.enabled }}
           {{- if .Values.tls.caCert.enabled }}
         - name: ca-cert
@@ -156,6 +158,10 @@ spec:
             defaultMode: 420
             name: {{ include "perses.fullname" . }}
         - name: storage
+          emptyDir: {}
+        # perses unzips its plugin archives into /etc/perses/plugins at startup, and the
+        # image dir is not writable by the (OpenShift-assigned) runtime uid
+        - name: plugins
           emptyDir: {}
       {{- if .Values.sidecar.enabled }}
         - name: provisioning
