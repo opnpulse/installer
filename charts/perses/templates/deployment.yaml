@@ -142,7 +142,9 @@ spec:
             drop:
             - ALL
           runAsNonRoot: true
+          {{- if ne "true" ( include "distro.openshift" . ) }}
           runAsUser: 65534
+          {{- end }}
           seccompProfile:
             type: RuntimeDefault
       volumes:

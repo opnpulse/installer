@@ -30,8 +30,13 @@ spec:
         {{- end }}
     spec:
       serviceAccountName: {{ include "perses.serviceAccountName" . }}
+      {{- if eq "true" ( include "distro.openshift" . ) }}
+      securityContext:
+        {{- toYaml (omit .Values.persistence.securityContext "runAsUser" "runAsGroup" "fsGroup" "supplementalGroups") | nindent 8 }}
+      {{- else }}
       securityContext:
         {{- toYaml .Values.persistence.securityContext | nindent 8 }}
+      {{- end }}
       containers:
       {{- if .Values.sidecar.enabled }}
       - name: {{ .Chart.Name }}-provisioning-sidecar
@@ -155,7 +160,9 @@ spec:
             drop:
             - ALL
           runAsNonRoot: true
+          {{- if ne "true" ( include "distro.openshift" . ) }}
           runAsUser: 65534
+          {{- end }}
           seccompProfile:
             type: RuntimeDefault
       volumes:
