@@ -46,9 +46,9 @@ spec:
           imagePullPolicy: Always
           env:
             - name: PGHOST
-              value: "{{ .Values.postgresql.external.addr }}"
+              value: "{{ include "inbox-server.postgresHost" . }}"
             - name: PGPORT
-              value: "5432"
+              value: "{{ include "inbox-server.postgresPort" . }}"
             - name: PGUSER
               valueFrom:
                 secretKeyRef:

@@ -57,7 +57,9 @@ spec:
         env:
         {{- if .Values.postgresql.enabled }}
         - name: JAMES_POSTGRES_ADDRESS
-          value: {{ include "inbox-server.fullname" . }}-postgresql
+          value: {{ include "inbox-server.postgresHost" . }}
+        - name: JAMES_POSTGRES_PORT
+          value: "{{ include "inbox-server.postgresPort" . }}"
         - name: JAMES_POSTGRES_DATABASE
           value: {{ .Values.postgresql.auth.database }}
         - name: JAMES_POSTGRES_USERNAME
@@ -69,7 +71,9 @@ spec:
               key: password
         {{- else }}
         - name: JAMES_POSTGRES_ADDRESS
-          value: {{ .Values.postgresql.external.addr }}
+          value: {{ include "inbox-server.postgresHost" . }}
+        - name: JAMES_POSTGRES_PORT
+          value: "{{ include "inbox-server.postgresPort" . }}"
         - name: JAMES_POSTGRES_DATABASE
           value: {{ .Values.postgresql.auth.database }}
         - name: JAMES_POSTGRES_USERNAME
@@ -220,7 +224,9 @@ spec:
         env:
         {{- if .Values.postgresql.enabled }}
         - name: JAMES_POSTGRES_ADDRESS
-          value: {{ include "inbox-server.fullname" . }}-postgresql
+          value: {{ include "inbox-server.postgresHost" . }}
+        - name: JAMES_POSTGRES_PORT
+          value: "{{ include "inbox-server.postgresPort" . }}"
         - name: JAMES_POSTGRES_DATABASE
           value: {{ .Values.postgresql.auth.database }}
         - name: JAMES_POSTGRES_USERNAME
@@ -232,7 +238,9 @@ spec:
               key: password
         {{- else }}
         - name: JAMES_POSTGRES_ADDRESS
-          value: {{ .Values.postgresql.external.addr }}
+          value: {{ include "inbox-server.postgresHost" . }}
+        - name: JAMES_POSTGRES_PORT
+          value: "{{ include "inbox-server.postgresPort" . }}"
         - name: JAMES_POSTGRES_DATABASE
           value: {{ .Values.postgresql.auth.database }}
         - name: JAMES_POSTGRES_USERNAME
