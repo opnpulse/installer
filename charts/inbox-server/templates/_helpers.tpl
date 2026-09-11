@@ -62,6 +62,38 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
+Postgres host, taking the "host:port" form of postgresql.external.addr into account
+*/}}
+{{- define "inbox-server.postgresHost" -}}
+{{- if .Values.postgresql.enabled -}}
+{{- printf "%s-postgresql" (include "inbox-server.fullname" .) -}}
+{{- else -}}
+{{- $parts := splitList ":" .Values.postgresql.external.addr -}}
+{{- if gt (len $parts) 1 -}}
+{{- initial $parts | join ":" -}}
+{{- else -}}
+{{- .Values.postgresql.external.addr -}}
+{{- end -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+Postgres port, parsed from postgresql.external.addr when present
+*/}}
+{{- define "inbox-server.postgresPort" -}}
+{{- if .Values.postgresql.enabled -}}
+5432
+{{- else -}}
+{{- $parts := splitList ":" .Values.postgresql.external.addr -}}
+{{- if gt (len $parts) 1 -}}
+{{- last $parts -}}
+{{- else -}}
+5432
+{{- end -}}
+{{- end -}}
+{{- end }}
+
+{{/*
 Builds up the JAVA_TOOL_OPTIONS env variable for java tunning James
 */}}
 {{- define "inbox-server.jvmOpts" -}}
