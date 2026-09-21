@@ -79,12 +79,16 @@ type PromLabelProxySpec struct {
 	// +optional
 	LivenessProbe PromLabelProxyProbe `json:"livenessProbe"`
 	// +optional
-	ReadinessProbe PromLabelProxyProbe           `json:"readinessProbe"`
-	Ingress        PromLabelProxyIngress         `json:"ingress"`
-	Config         PromLabelProxyConfig          `json:"config"`
-	Metrics        PromLabelProxyMetrics         `json:"metrics"`
-	KubeRBACProxy  PromLabelProxyKubeRBACProxy   `json:"kubeRBACProxy"`
-	Infra          catgwapi.ServiceProviderInfra `json:"infra"`
+	ReadinessProbe PromLabelProxyProbe   `json:"readinessProbe"`
+	Ingress        PromLabelProxyIngress `json:"ingress"`
+	Config         PromLabelProxyConfig  `json:"config"`
+	// +optional
+	Backends PromLabelProxyBackends `json:"backends"`
+	// +optional
+	Forwarder     PromLabelProxyForwarder       `json:"forwarder"`
+	Metrics       PromLabelProxyMetrics         `json:"metrics"`
+	KubeRBACProxy PromLabelProxyKubeRBACProxy   `json:"kubeRBACProxy"`
+	Infra         catgwapi.ServiceProviderInfra `json:"infra"`
 	// +optional
 	Platform PromLabelProxyPlatform `json:"platform"`
 	// +optional
@@ -164,6 +168,35 @@ type PromLabelProxyConfig struct {
 	Label         string `json:"label"`
 	//+optional
 	ExtraArgs []string `json:"extraArgs"`
+	//+optional
+	ExtraEnv []core.EnvVar `json:"extraEnv"`
+}
+
+type PromLabelProxyBackends struct {
+	Metrics PromLabelProxyBackendURL  `json:"metrics"`
+	Logs    PromLabelProxyLogsBackend `json:"logs"`
+	Traces  PromLabelProxyBackendURL  `json:"traces"`
+}
+
+type PromLabelProxyBackendURL struct {
+	URL string `json:"url"`
+}
+
+type PromLabelProxyLogsBackend struct {
+	URL string `json:"url"`
+	//+optional
+	ClickhouseAuthSecret string `json:"clickhouseAuthSecret"`
+	//+optional
+	ClickhouseUserKey string `json:"clickhouseUserKey"`
+	//+optional
+	ClickhousePasswordKey string `json:"clickhousePasswordKey"`
+}
+
+type PromLabelProxyForwarder struct {
+	Enabled bool  `json:"enabled"`
+	Port    int32 `json:"port"`
+	//+optional
+	ClientName string `json:"clientName"`
 }
 
 type PromLabelProxyMetrics struct {

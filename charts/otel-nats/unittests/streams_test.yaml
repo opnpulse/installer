@@ -1,0 +1,36 @@
+suite: stream replicas follow the NATS topology
+templates:
+  - templates/bootstrap-streams-job.yaml
+release:
+  name: otel-nats
+  namespace: monitoring
+tests:
+  - it: uses R3 on the default three-node cluster
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: "OTEL_DLQ \\\\\\s+--subjects 'otel.dlq.>' \\\\\\s+--storage file --replicas 3 "
+      - notMatchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: "--replicas [^3]"
+  - it: uses R1 on a one-node cluster
+    set:
+      nats.cluster.replicas: 1
+    asserts:
+      - notMatchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: "--replicas [^1]"
+  - it: uses R1 with clustering off
+    set:
+      nats.cluster.enabled: false
+    asserts:
+      - notMatchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: "--replicas [^1]"
+  - it: caps at R3 on a larger cluster
+    set:
+      nats.cluster.replicas: 5
+    asserts:
+      - notMatchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: "--replicas [^3]"

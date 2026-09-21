@@ -1,0 +1,33 @@
+{{- if .Values.forwarder.hpa.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: otel-forwarder
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "otel-nats.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: otel-forwarder
+  minReplicas: {{ .Values.forwarder.hpa.minReplicas }}
+  maxReplicas: {{ .Values.forwarder.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.forwarder.hpa.targetCPUUtilizationPercentage }}
+    {{- if .Values.forwarder.hpa.consumerLag.enabled }}
+    # Total pending across the forwarder consumers.
+    - type: External
+      external:
+        metric:
+          name: nats_consumer_num_pending
+        target:
+          type: AverageValue
+          averageValue: {{ .Values.forwarder.hpa.consumerLag.podTarget | quote }}
+    {{- end }}
+{{- end }}

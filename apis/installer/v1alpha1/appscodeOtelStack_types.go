@@ -134,6 +134,8 @@ type OtelTargetAllocator struct {
 	AllocationStrategy string `json:"allocationStrategy"`
 	// +optional
 	PrometheusCR *OtelTargetAllocatorPromCR `json:"prometheusCR"`
+	// +optional
+	Resources core.ResourceRequirements `json:"resources,omitempty"`
 }
 
 type OtelTargetAllocatorPromCR struct {

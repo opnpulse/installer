@@ -1,0 +1,45 @@
+{{- /*
+TCP, not TLS: NATS sends a plaintext INFO before TLS, so Envoy cannot route it
+by ClientHello. NATS still does its own mTLS end to end.
+*/ -}}
+{{- if .Values.gateway.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ include "otel-nats.natsService" . }}-gw
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "otel-nats.labels" . | nindent 4 }}
+spec:
+  gatewayClassName: {{ .Values.gateway.className | default .Release.Namespace }}
+  listeners:
+    - name: nats
+      port: {{ .Values.gateway.port }}
+      protocol: TCP
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - group: gateway.networking.k8s.io
+            kind: TCPRoute
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TCPRoute
+metadata:
+  name: {{ include "otel-nats.natsService" . }}-route
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "otel-nats.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ include "otel-nats.natsService" . }}-gw
+      namespace: {{ .Release.Namespace }}
+      sectionName: nats
+  rules:
+    - backendRefs:
+        - kind: Service
+          name: {{ include "otel-nats.natsService" . }}
+          port: 4222
+{{- end }}

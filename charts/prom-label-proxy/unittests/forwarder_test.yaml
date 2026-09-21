@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/helm-unittest/helm-unittest/main/schema/helm-testsuite.json
+suite: test the forwarder write path
+templates:
+  - deployment.yaml
+tests:
+  - it: can be turned off, for an install with no buffer
+    set:
+      forwarder.enabled: false
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--forwarder-listen-address=0.0.0.0:8081"
+
+  - it: is on by default and pins the one identity allowed to name a cluster
+    release:
+      namespace: monitoring
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--forwarder-listen-address=0.0.0.0:8081"
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--forwarder-client-name=otel-forwarder.monitoring.svc"
+      # Without these the listener refuses to start, so the header can never
+      # be trusted on an unauthenticated connection.
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--tls-cert-file=/etc/proxy-tls/tls.crt"
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--tls-ca-file=/etc/proxy-tls/ca.crt"
+
+  - it: follows the release namespace, which is where the SAN comes from
+    release:
+      namespace: observability
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--forwarder-client-name=otel-forwarder.observability.svc"

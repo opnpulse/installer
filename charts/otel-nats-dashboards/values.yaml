@@ -1,0 +1,12 @@
+# Where Grafana's sidecar looks for ConfigMaps. Empty follows the release
+# namespace; set it if kube-prometheus-stack watches a different one.
+namespace: ""
+
+# Label the Grafana sidecar matches (default kube-prometheus-stack value).
+sidecarLabel:
+  key: grafana_dashboard
+  value: "1"
+
+# Folder hint stored as an annotation on the ConfigMap, picked up by the
+# sidecar to organize dashboards in Grafana.
+folder: "otel-nats"

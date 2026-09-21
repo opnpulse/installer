@@ -4,7 +4,7 @@ metadata:
   name: prom-label-proxy-tenant-reader
 rules:
   - apiGroups: ["monitoring.k8s.appscode.com"]
-    resources: ["tenants"]
+    resources: ["tenants", "telemetrystacks"]
     verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1

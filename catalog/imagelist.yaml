@@ -7,6 +7,12 @@
 - ghcr.io/cloudoperators/greenhouse-extensions-integration-test:main
 - ghcr.io/open-telemetry/opentelemetry-operator/opentelemetry-operator:0.144.0
 - ghcr.io/open-telemetry/opentelemetry-operator/target-allocator:main
+- ghcr.io/opnpulse/opentelemetry-collector-ace:v0.0.3
+- nats:2.9.20-alpine
+- natsio/nats-box:0.13.8
+- natsio/nats-box:0.14.5
+- natsio/nats-server-config-reloader:0.11.0
+- natsio/prometheus-nats-exporter:0.12.0
 - opensearchproject/opensearch:2.1.0
 - quay.io/brancz/kube-rbac-proxy:v0.20.0
 - quay.io/prometheuscommunity/prom-label-proxy:v0.12.1

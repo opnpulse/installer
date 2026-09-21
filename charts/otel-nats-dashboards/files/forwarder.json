@@ -1,0 +1,40 @@
+{
+  "title": "otel-nats / Central Forwarder",
+  "uid": "otel-nats-forwarder",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": ["otel-nats", "forwarder"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Acks / Naks / DLQs per signal",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 8 },
+      "targets": [
+        { "expr": "sum by (signal) (rate(nats_receiver_messages_acked[1m]))",    "legendFormat": "ack {{signal}}" },
+        { "expr": "sum by (signal) (rate(nats_receiver_messages_naked[1m]))",    "legendFormat": "nak {{signal}}" },
+        { "expr": "sum by (signal) (rate(nats_receiver_messages_dlqed[1m]))",    "legendFormat": "dlq {{signal}}" },
+        { "expr": "sum by (signal) (rate(nats_receiver_messages_malformed[1m]))", "legendFormat": "malformed {{signal}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Backend write latency p95",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum by (le, exporter) (rate(otelcol_exporter_send_latency_bucket[5m])))", "legendFormat": "{{exporter}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Backend errors",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum by (exporter) (rate(otelcol_exporter_send_failed_spans[1m]))",    "legendFormat": "{{exporter}} spans" },
+        { "expr": "sum by (exporter) (rate(otelcol_exporter_send_failed_metric_points[1m]))", "legendFormat": "{{exporter}} mp" }
+      ]
+    }
+  ]
+}
