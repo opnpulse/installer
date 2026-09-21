@@ -1,0 +1,149 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-forwarder
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "otel-nats.labels" . | nindent 4 }}
+    # The Feature's readiness check selects on this, so it belongs on the
+    # Deployment itself and not only on the pod template.
+    app.kubernetes.io/component: forwarder
+spec:
+  replicas: {{ .Values.forwarder.replicas }}
+  selector:
+    matchLabels:
+      {{- include "otel-nats.forwarder.selector" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        {{- include "otel-nats.labels" . | nindent 8 }}
+        # The rest of the selector is already in the common labels.
+        app.kubernetes.io/component: forwarder
+      # tenant-operator stamps the config hash here, so a backend change rolls the pods.
+    spec:
+      serviceAccountName: otel-forwarder
+      # The collector runs as 10001; the group lets it read the 0440 secrets.
+      securityContext:
+        fsGroup: 10001
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    {{- include "otel-nats.forwarder.selector" . | nindent 20 }}
+      containers:
+        - name: otelcol
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["--config=/etc/otelcol/config.yaml"]
+          ports:
+            - { name: metrics, containerPort: 8888,  protocol: TCP }
+            - { name: health,  containerPort: 13133, protocol: TCP }
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - name: NATS_URL
+              value: {{ include "otel-nats.natsClientURL" . | quote }}
+            - name: PLP_METRICS
+              value: {{ .Values.forwarder.endpoints.metrics | default (printf "%s/api/v1/receive" (include "otel-nats.plpBase" .)) | quote }}
+            - name: PLP_CLICKHOUSE
+              value: {{ .Values.forwarder.endpoints.clickhouse | default (printf "%s/?secure=true" (include "otel-nats.plpBase" .)) | quote }}
+            - name: PLP_LOGS
+              value: {{ .Values.forwarder.endpoints.logs | default (printf "%s/api/v1/logs" (include "otel-nats.plpBase" .)) | quote }}
+            - name: PLP_TRACES
+              value: {{ .Values.forwarder.endpoints.traces | default (printf "%s/api/v1/traces" (include "otel-nats.plpBase" .)) | quote }}
+          resources:
+            {{- toYaml .Values.forwarder.resources | nindent 12 }}
+          livenessProbe:
+            httpGet: { path: /, port: health }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /, port: health }
+            periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /etc/otelcol/config.yaml
+              subPath: config.yaml
+            - name: nats-creds
+              mountPath: /etc/otelcol/nats.creds
+              subPath: nats.creds
+              readOnly: true
+            - name: nats-client-tls
+              mountPath: /etc/otelcol/nats-ca.crt
+              subPath: ca.crt
+              readOnly: true
+            - name: nats-client-tls
+              mountPath: /etc/otelcol/nats-client.crt
+              subPath: tls.crt
+              readOnly: true
+            - name: nats-client-tls
+              mountPath: /etc/otelcol/nats-client.key
+              subPath: tls.key
+              readOnly: true
+            - name: proxy-client-tls
+              mountPath: /etc/otelcol/proxy-ca.crt
+              subPath: ca.crt
+              readOnly: true
+            - name: proxy-client-tls
+              mountPath: /etc/otelcol/proxy-client.crt
+              subPath: tls.crt
+              readOnly: true
+            - name: proxy-client-tls
+              mountPath: /etc/otelcol/proxy-client.key
+              subPath: tls.key
+              readOnly: true
+      volumes:
+        # Written by tenant-operator as soon as NATS is bootstrapped: one
+        # pipeline per signal for every cluster, set by the stack's backends.
+        - name: config
+          configMap:
+            name: otel-nats-forwarder-config
+        - name: nats-creds
+          secret:
+            secretName: {{ .Values.forwarder.natsSecretName }}
+            defaultMode: 0440
+        - name: proxy-client-tls
+          secret:
+            secretName: {{ .Values.forwarder.proxyTLSSecretName }}
+            defaultMode: 0440
+        - name: nats-client-tls
+          secret:
+            # The gateway certificate service-gateway issues.
+            secretName: {{ .Values.forwarder.clientTLSSecretName }}
+            defaultMode: 0440
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-forwarder
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "otel-nats.labels" . | nindent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-forwarder-metrics
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "otel-nats.labels" . | nindent 4 }}
+    # The ServiceMonitor selects on it.
+    app.kubernetes.io/component: forwarder
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    {{- include "otel-nats.forwarder.selector" . | nindent 4 }}
+  ports:
+    - name: metrics
+      port: 8888
+      targetPort: 8888

@@ -1,0 +1,36 @@
+suite: the reloader can read every file the server includes
+templates:
+  - charts/nats/templates/statefulset.yaml
+  - charts/nats/templates/configmap.yaml
+release:
+  name: otel-nats
+  namespace: monitoring
+tests:
+  - it: includes the resolver from a path both containers mount
+    template: charts/nats/templates/configmap.yaml
+    asserts:
+      - matchRegex:
+          path: data["nats.conf"]
+          pattern: include ./resolver/resolver.conf
+      - notMatchRegex:
+          path: data["nats.conf"]
+          pattern: include "accounts/
+  - it: mounts the resolver into the server
+    template: charts/nats/templates/statefulset.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "nats")].volumeMounts
+          content:
+            name: resolver
+            mountPath: /etc/nats-config/resolver
+  - it: mounts the resolver into the reloader and watches it
+    template: charts/nats/templates/statefulset.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "reloader")].volumeMounts
+          content:
+            name: resolver
+            mountPath: /etc/nats-config/resolver
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "reloader")].command
+          content: /etc/nats-config/resolver/resolver.conf

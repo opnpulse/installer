@@ -1,0 +1,28 @@
+---
+apiVersion: v2
+name: otel-nats
+description: NATS JetStream buffer between workload clusters and the telemetry backends
+type: application
+version: v2026.9.22
+appVersion: "0.1.0"
+home: https://github.com/opnpulse/otel-nats
+icon: https://cdn.appscode.com/images/products/searchlight/searchlight-512x512.png
+sources: [https://github.com/opnpulse/otel-nats]
+keywords:
+  - opentelemetry
+  - nats
+  - jetstream
+  - observability
+maintainers:
+  - name: appscode
+    email: support@appscode.com
+dependencies:
+  - name: otel-nats-dashboards
+    version: v2026.9.22
+    repository: "file://../otel-nats-dashboards"
+    alias: dashboards
+    condition: dashboards.enabled
+  - name: nats
+    version: "0.19.17"
+    repository: oci://ghcr.io/appscode-charts
+    condition: nats.enabled

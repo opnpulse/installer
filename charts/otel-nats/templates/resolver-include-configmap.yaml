@@ -1,0 +1,15 @@
+{{- if .Values.nats.enabled }}
+# Declares the memory resolver and pulls in the accounts tenant-operator writes,
+# which sit beside this file in the same projected volume.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-nats-resolver-include
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "otel-nats.labels" . | nindent 4 }}
+data:
+  resolver.conf: |
+    resolver: MEMORY
+    include "accounts.conf"
+{{- end }}

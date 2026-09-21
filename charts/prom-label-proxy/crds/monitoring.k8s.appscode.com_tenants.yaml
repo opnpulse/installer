@@ -154,8 +154,45 @@ spec:
             type: object
           status:
             properties:
+              accountID:
+                format: int64
+                maximum: 4294967295
+                minimum: 1
+                type: integer
               boundIngester:
                 type: string
+              logs:
+                properties:
+                  instance:
+                    type: string
+                  readURL:
+                    type: string
+                  writeURL:
+                    type: string
+                type: object
+              metrics:
+                properties:
+                  instance:
+                    type: string
+                  readURL:
+                    type: string
+                  writeURL:
+                    type: string
+                type: object
+              projectID:
+                format: int64
+                maximum: 4294967295
+                minimum: 0
+                type: integer
+              traces:
+                properties:
+                  instance:
+                    type: string
+                  readURL:
+                    type: string
+                  writeURL:
+                    type: string
+                type: object
               type:
                 type: string
             required:

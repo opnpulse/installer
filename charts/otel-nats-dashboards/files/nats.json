@@ -1,0 +1,42 @@
+{
+  "title": "otel-nats / NATS JetStream",
+  "uid": "otel-nats-nats",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": ["otel-nats", "nats"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Cluster nodes",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [{ "expr": "count(nats_varz_connections)" }]
+    },
+    {
+      "type": "stat",
+      "title": "Total connections",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "targets": [{ "expr": "sum(nats_varz_connections)" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Stream bytes",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [{ "expr": "nats_jetstream_stream_bytes", "legendFormat": "{{stream}}" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Consumer ack pending",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [{ "expr": "nats_jetstream_consumer_num_ack_pending", "legendFormat": "{{stream}}/{{consumer}}" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Per-account connections",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 8 },
+      "targets": [{ "expr": "nats_accountz_connections", "legendFormat": "{{account}}" }]
+    }
+  ]
+}

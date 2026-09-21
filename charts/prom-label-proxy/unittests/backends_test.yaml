@@ -1,0 +1,108 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/helm-unittest/helm-unittest/main/schema/helm-testsuite.json
+suite: test per-pillar backend wiring
+templates:
+  - deployment.yaml
+tests:
+  - it: defaults to the Thanos and ClickHouse endpoints the stack shipped with
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--upstream=http://thanos-query-telemetry-stack.monitoring.svc:9090/"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: METRICS_URL
+            value: http://thanos-receive-router-telemetry-stack.monitoring.svc:19291
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: LOGS_URL
+            value: http://telemetry-stack-clickhouse.monitoring.svc:8123
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TRACES_URL
+            value: http://telemetry-stack-clickhouse.monitoring.svc:8123
+
+
+  - it: mounts the ClickHouse credentials while logs are on ClickHouse
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLICKHOUSE_USER
+            valueFrom:
+              secretKeyRef:
+                key: username
+                name: telemetry-stack-clickhouse-auth
+                optional: true
+
+  # VictoriaLogs authenticates by tenant header, so the ClickHouse credentials must
+  # not be mounted at all rather than left pointing at a secret that will not exist.
+  - it: drops the ClickHouse credentials when logs move to VictoriaLogs
+    set:
+      backends.logs.url: http://vlinsert-ts-vl-30d.monitoring.svc:9481
+      backends.logs.clickhouseAuthSecret: null
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: CLICKHOUSE_USER
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: CLICKHOUSE_PASSWORD
+
+  - it: routes every pillar at a Victoria backend when all three are selected
+    set:
+      config.upstream: http://vmselect-ts-vm-30d.monitoring.svc:8481/
+      backends.metrics.url: http://vminsert-ts-vm-30d.monitoring.svc:8480
+      backends.logs.url: http://vlinsert-ts-vl-30d.monitoring.svc:9481
+      backends.logs.clickhouseAuthSecret: null
+      backends.traces.url: http://vtinsert-ts-vt-30d.monitoring.svc:10428
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--upstream=http://vmselect-ts-vm-30d.monitoring.svc:8481/"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: METRICS_URL
+            value: http://vminsert-ts-vm-30d.monitoring.svc:8480
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TRACES_URL
+            value: http://vtinsert-ts-vt-30d.monitoring.svc:10428
+
+  - it: allows a mixed stack, VictoriaMetrics with ClickHouse logs and traces
+    set:
+      backends.metrics.url: http://vminsert-ts-vm-1y.monitoring.svc:8480
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLICKHOUSE_USER
+            valueFrom:
+              secretKeyRef:
+                key: username
+                name: telemetry-stack-clickhouse-auth
+                optional: true
+
+  - it: passes extra environment variables through
+    set:
+      config.extraEnv:
+        - name: LOG_LEVEL
+          value: debug
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: LOG_LEVEL
+            value: debug
+
+  # A single instance stack must not carry the template at all, or the proxy would
+  # try to resolve a per-instance upstream for every tenant.
+

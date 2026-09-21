@@ -1,0 +1,87 @@
+{{- if .Values.bootstrap.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: otel-nats-bootstrap
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "otel-nats.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+    helm.sh/hook-delete-policy: hook-succeeded,before-hook-creation
+spec:
+  backoffLimit: 10
+  template:
+    metadata:
+      labels:
+        {{- include "otel-nats.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: bootstrap
+          image: "{{ .Values.bootstrap.image.repository }}:{{ .Values.bootstrap.image.tag }}"
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -eu
+              export NATS_URL="{{ include "otel-nats.natsClientURL" . }}"
+              export NATS_CREDS=/etc/otel-nats/nats.creds
+              export NATS_CA=/etc/otel-nats-tls/ca.crt
+              export NATS_CERT=/etc/otel-nats-tls/tls.crt
+              export NATS_KEY=/etc/otel-nats-tls/tls.key
+              # The server only starts once tenant-operator has written the
+              # resolver config, so the first run can arrive ahead of it. A
+              # JetStream call, since this user may not publish to an inbox.
+              for i in $(seq 1 60); do
+                nats stream ls -n --timeout 5s >/dev/null && break
+                echo "waiting for NATS ($i/60)"
+                sleep 10
+              done
+              nats stream add OTEL_TRACES \
+                --subjects 'ingest.*.otel.traces.>' \
+                --storage file --replicas {{ include "otel-nats.streamReplicas" . }} \
+                --max-age {{ .Values.nats.streams.traces.maxAge }} --max-bytes {{ mul .Values.nats.streams.traces.maxGiB 1073741824 }} \
+                --retention limits --discard old --dupe-window 2m \
+                --defaults || nats stream update OTEL_TRACES --subjects 'ingest.*.otel.traces.>' --defaults
+              nats stream add OTEL_METRICS \
+                --subjects 'ingest.*.otel.metrics.>' \
+                --storage file --replicas {{ include "otel-nats.streamReplicas" . }} \
+                --max-age {{ .Values.nats.streams.metrics.maxAge }} --max-bytes {{ mul .Values.nats.streams.metrics.maxGiB 1073741824 }} \
+                --retention limits --discard old --dupe-window 2m \
+                --defaults || nats stream update OTEL_METRICS --subjects 'ingest.*.otel.metrics.>' --defaults
+              nats stream add OTEL_LOGS \
+                --subjects 'ingest.*.otel.logs.>' \
+                --storage file --replicas {{ include "otel-nats.streamReplicas" . }} \
+                --max-age {{ .Values.nats.streams.logs.maxAge }} --max-bytes {{ mul .Values.nats.streams.logs.maxGiB 1073741824 }} \
+                --retention limits --discard old --dupe-window 2m \
+                --defaults || nats stream update OTEL_LOGS --subjects 'ingest.*.otel.logs.>' --defaults
+              nats stream add OTEL_DLQ \
+                --subjects 'otel.dlq.>' \
+                --storage file --replicas {{ include "otel-nats.streamReplicas" . }} \
+                --max-age {{ .Values.nats.streams.dlq.maxAge }} --max-bytes {{ mul .Values.nats.streams.dlq.maxGiB 1073741824 }} \
+                --retention limits --discard old --dupe-window 2m \
+                --defaults || nats stream update OTEL_DLQ --subjects 'otel.dlq.>' --defaults
+              # The forwarder creates its own consumer per signal. Only the DLQ
+              # keeps a standing consumer here, for inspection.
+              nats consumer add OTEL_DLQ dlq-inspector \
+                --pull --deliver all --ack explicit \
+                --max-deliver 3 --max-pending 100 --wait 60s \
+                --defaults || true
+          volumeMounts:
+            - name: admin-creds
+              mountPath: /etc/otel-nats
+              readOnly: true
+            - name: client-tls
+              mountPath: /etc/otel-nats-tls
+              readOnly: true
+      volumes:
+        - name: admin-creds
+          secret:
+            secretName: {{ .Values.bootstrap.credsSecret }}
+            defaultMode: 0400
+        - name: client-tls
+          secret:
+            secretName: {{ .Values.forwarder.clientTLSSecretName }}
+            defaultMode: 0400
+{{- end }}

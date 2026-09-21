@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-nats-dashboard-pipeline
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{ .Values.sidecarLabel.key }}: {{ .Values.sidecarLabel.value | quote }}
+  annotations:
+    grafana_folder: {{ .Values.folder | quote }}
+data:
+  pipeline.json: |-
+{{ .Files.Get "files/pipeline.json" | indent 4 }}

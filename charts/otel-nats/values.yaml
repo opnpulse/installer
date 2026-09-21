@@ -1,0 +1,221 @@
+# Objects are created in the release namespace. The Feature installs this into
+# monitoring, alongside prom-label-proxy and tenant-operator.
+
+image:
+  # Same image the workload gateway runs. The tag must include natsreceiver,
+  # which v0.0.2 does not.
+  repository: ghcr.io/opnpulse/opentelemetry-collector-ace
+  tag: "v0.0.3-test"
+  # Always, since test builds reuse the tag and a cached image never refreshes.
+  pullPolicy: Always
+
+# ---- NATS subchart values (appscode-charts/nats 0.19.17) -----------------
+# Same chart and images the ACE platform runs, so there is one NATS version to
+# operate and patch. No key material here: tenant-operator generates the
+# operator and account JWTs and writes the include file this config pulls in.
+nats:
+  enabled: true
+
+  nats:
+    # Mounted into the server and the reloader at /etc/nats-config/resolver and
+    # included by the server, so the reloader can follow the include and a
+    # revocation reloads. Waits for the ConfigMap tenant-operator writes.
+    config:
+      - name: resolver
+        projected:
+          sources:
+            - configMap:
+                name: otel-nats-resolver-include
+            - configMap:
+                name: otel-nats-resolver
+    # The mirrored image ACE pins, not the chart's own default.
+    image:
+      registry: ghcr.io
+      repository: appscode-images/nats
+      tag: 2.12.6-alpine
+    # Clients reach the buffer through one gateway address, so advertising pod
+    # addresses to them would hand out routes nothing outside can dial.
+    advertise: false
+    jetstream:
+      enabled: true
+      fileStorage:
+        enabled: true
+        storageDirectory: /data
+        # Each node holds a full copy of every stream, so keep this above the
+        # sum of streams.*.maxGiB plus headroom. Size it from your own ingest
+        # rate: bytes per second times the outage you want to ride out.
+        size: 10Gi
+        # Empty follows the cluster's default StorageClass. The chart refuses
+        # to install if there is no default.
+        storageClassName: ""
+    limits:
+      maxConnections: 10000
+      maxSubscriptions: 1000
+      maxPayload: 8MB
+      writeDeadline: 10s
+    # The gateway certificate, which is also what tenant-operator issues client
+    # certs from. verify is what makes those client certs required.
+    tls:
+      secret:
+        name: monitoring-gw-cert
+      cert: tls.crt
+      key: tls.key
+      ca: ca.crt
+      verify: true
+      timeout: 5
+
+  cluster:
+    enabled: true
+    replicas: 3
+    noAdvertise: true
+    tls:
+      secret:
+        name: monitoring-gw-cert
+      cert: tls.crt
+      key: tls.key
+      ca: ca.crt
+
+  # The operator identity, system account and account JWTs all come from the
+  # ConfigMap tenant-operator writes, so no key material lands in the release.
+  auth:
+    enabled: true
+    # The resolver is declared in the nats.config include, so this type
+    # matches no chart branch. The table must stay: the chart reads it unguarded.
+    resolver:
+      type: include
+
+  reloader:
+    enabled: true
+    image:
+      tag: 0.22.3
+
+  bootconfig:
+    image:
+      tag: 0.22.3
+
+  # Surfaces nats_varz_*, nats_stream_*, nats_consumer_* and nats_accstatz_*
+  # for the alerts. Without -prefix the exporter emits gnatsd_* and jetstream_*.
+  exporter:
+    enabled: true
+    image:
+      tag: 0.19.2
+    args:
+      - "-prefix=nats"
+      - "-varz"
+      - "-connz"
+      - "-jsz=all"
+      - "-accstatz"
+      - "http://localhost:8222/"
+    serviceMonitor:
+      enabled: true
+      labels:
+        release: kube-prometheus-stack
+
+  natsbox:
+    enabled: false
+
+  # Stream caps, in GiB, created by the bootstrap job. maxAge is the real
+  # retention bound; maxGiB is the safety cap. Their sum has to fit the PVC
+  # above, since each node stores every stream.
+  # 7GiB of 10, leaving room for JetStream's own metadata and compaction.
+  streams:
+    metrics: { maxGiB: 2, maxAge: 24h }
+    logs:    { maxGiB: 3, maxAge: 48h }
+    traces:  { maxGiB: 1, maxAge: 24h }
+    dlq:     { maxGiB: 1, maxAge: 168h }
+
+# ---- Forwarder -----------------------------------------------------------
+forwarder:
+  replicas: 3
+  resources:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits:   { cpu: 2,    memory: 2Gi }
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 12
+    targetCPUUtilizationPercentage: 70
+    # Off by default: it needs a prometheus-adapter rule exposing
+    # nats_consumer_num_pending as an external metric, or the HPA reports it unknown.
+    consumerLag:
+      enabled: false
+      podTarget: 5000
+  # Minted by tenant-operator, not created by hand.
+  natsSecretName: otel-forwarder-nats
+  # The same gateway certificate prom-label-proxy mounts, which is what lets
+  # NATS trust the client certs tenant-operator issues.
+  clientTLSSecretName: monitoring-gw-cert
+  # Client cert the proxy authenticates the forwarder with.
+  proxyTLSSecretName: monitoring-gw-cert
+  # Every signal goes through prom-label-proxy, never a backend directly: the
+  # proxy is what resolves the tenant's instance and confines a client org.
+  # Empty means derive from promLabelProxyNamespace and promLabelProxyPort, so
+  # the addresses and the NetworkPolicy cannot name different places.
+  endpoints:
+    metrics: ""
+    # Keep a query string: tenant-operator appends &http_path=/api/v1/logs or /traces.
+    clickhouse: ""
+    logs: ""
+    traces: ""
+  # Defaults to the in-cluster NATS Service this chart installs.
+  natsClientURL: ""
+
+# ---- Exposure: a Gateway listener, not a LoadBalancer Service ------------
+# The gateway controller aggregates listeners onto the cluster's single Envoy,
+# so a Service here would provision a second load balancer.
+gateway:
+  enabled: true
+  # Defaults to the GatewayClass service-gateway creates, named after the
+  # namespace, which is what prom-label-proxy's gateway also uses.
+  className: ""
+  port: 4222
+
+# ---- prom-label-proxy, installed by the platform, not by this chart ------
+# The forwarder writes to the listener that takes the cluster in a header, not
+# the certificate one the workload gateways use. That listener is on by default
+# on the prom-label-proxy chart; this chart refuses to install if the port
+# below is not exposed there, which catches the two drifting apart.
+promLabelProxyNamespace: monitoring
+promLabelProxyPort: 8081
+
+# ---- Bootstrap (Phase A) -------------------------------------------------
+bootstrap:
+  enabled: true
+  image:
+    repository: natsio/nats-box
+    tag: "0.14.5"
+  # Minted by tenant-operator alongside the account. Manages streams only, so
+  # it cannot read what the clusters publish.
+  credsSecret: otel-nats-admin
+
+# ---- Grafana dashboards ---------------------------------------------------
+# Shipped as a subchart so a panel change needs no NATS rollout. Off by
+# default: they are only useful where the Grafana sidecar is watching.
+dashboards:
+  enabled: false
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  # kube-prometheus-stack selects ServiceMonitors on this label.
+  labels:
+    release: kube-prometheus-stack
+
+# ---- PrometheusRule (DESIGN §8.7 + §9 + §11) ----------------------------
+prometheusRule:
+  enabled: true
+  # Defaults to the release namespace; override if your Prometheus selects
+  # rules from a different namespace.
+  namespace: ""
+  labels:
+    release: kube-prometheus-stack
+
+networkPolicy:
+  enabled: true
+
+# ---- Public endpoint -----------------------------------------------------
+# Name the workload gateways dial. Defaults to otel-nats.<ns>.svc.cluster.local,
+# which b3 pins to the gateway load balancer with a hostAlias, so it works in
+# both ip and domain mode. Set this only when a real public DNS name exists,
+# and make sure it is a SAN on the certificate service-gateway issues.
+publicHostname: ""

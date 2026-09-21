@@ -20,6 +20,12 @@ spec:
       {{- end }}
       protocol: TCP
       name: http
+    {{- if .Values.forwarder.enabled }}
+    - port: {{ .Values.forwarder.port }}
+      targetPort: forwarder
+      protocol: TCP
+      name: forwarder
+    {{- end }}
       {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.nodePort))) }}
       nodePort: {{ .Values.service.nodePort }}
       {{- end }}

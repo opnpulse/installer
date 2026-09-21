@@ -1,0 +1,27 @@
+otel-nats {{ .Chart.Version }} installed in {{ .Release.Namespace }}.
+
+  Endpoint: tls://{{ include "otel-nats.publicHostname" . }}:{{ .Values.gateway.port }}
+{{- if not .Values.publicHostname }}
+            b3 pins this name to the gateway load balancer with a hostAlias,
+            so no public DNS record is needed.
+{{- end }}
+
+{{- $account := lookup "v1" "Secret" .Release.Namespace "otel-nats-account" }}
+{{- if $account }}
+  Account:  {{ index $account.data "account-id" | b64dec }}
+
+  tenant-operator has bootstrapped the account and is minting a credential per
+  cluster tenant. b3 switches the workload gateways to the buffer on their next
+  reconcile.
+{{- else }}
+  Account:  not yet created.
+
+  tenant-operator creates it when it next reconciles the TelemetryStack, and
+  the NATS pods stay in ContainerCreating until it does. Nothing to run by
+  hand. If they do not start within a few minutes, check that tenant-operator
+  is running in {{ .Release.Namespace }}.
+{{- end }}
+
+  The forwarder writes to prom-label-proxy on port {{ .Values.promLabelProxyPort }},
+  which that chart enables by default. Install refuses if the port is not
+  exposed, so reaching this message means it is.

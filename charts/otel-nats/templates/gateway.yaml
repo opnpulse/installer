@@ -1,0 +1,53 @@
+{{- /*
+Exposure goes through the Gateway API, not a LoadBalancer Service. The gateway
+controller owns the single Envoy LoadBalancer in this cluster and aggregates
+every listener onto it, the way prom-label-proxy's gateway does for 443 and
+10001. Creating our own Service would provision a second load balancer.
+
+NATS sends a plaintext INFO before the client starts TLS, so a TLS listener
+cannot route it: Envoy waits for a ClientHello that never comes and closes the
+connection. A TCP listener forwards bytes as they arrive, and NATS still does
+its own mTLS end to end. The port carries only NATS, so there is no SNI to
+route on. ACE exposes its own NATS the same way.
+*/ -}}
+{{- if .Values.gateway.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ include "otel-nats.natsService" . }}-gw
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "otel-nats.labels" . | nindent 4 }}
+spec:
+  gatewayClassName: {{ .Values.gateway.className | default .Release.Namespace }}
+  listeners:
+    - name: nats
+      port: {{ .Values.gateway.port }}
+      protocol: TCP
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - group: gateway.networking.k8s.io
+            kind: TCPRoute
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TCPRoute
+metadata:
+  name: {{ include "otel-nats.natsService" . }}-route
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "otel-nats.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ include "otel-nats.natsService" . }}-gw
+      namespace: {{ .Release.Namespace }}
+      sectionName: nats
+  rules:
+    - backendRefs:
+        - kind: Service
+          name: {{ include "otel-nats.natsService" . }}
+          port: 4222
+{{- end }}

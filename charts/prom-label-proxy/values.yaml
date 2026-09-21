@@ -7,7 +7,7 @@ image:
   repository: ghcr.io/opnpulse/prom-label-proxy
   # -- prom-label-proxy image tag (immutable tags are recommended).
   # @default -- `.Chart.AppVersion`
-  tag: "v2026.4.24"
+  tag: "v2026.9.22"
 
 # -- registry secret names as an array
 imagePullSecrets: []
@@ -26,7 +26,7 @@ serviceAccount:
   create: true
   # -- The name of the ServiceAccount to use.
   # @default -- A name is generated using the `prom-label-proxy.fullname` template
-  name: ''
+  name: ""
   # -- Annotations for service account. Evaluated as a template.
   annotations: {}
 
@@ -74,9 +74,10 @@ resources:
   ## limits:
   ##    cpu: 100m
   ##    memory: 128Mi
+  # Sized for the forwarder draining a JetStream backlog: 128Mi was OOM-killed.
   limits:
-    cpu: 200m
-    memory: 128Mi
+    cpu: "1"
+    memory: 512Mi
   # -- The requested resources for the prom-label-proxy container
   ## Examples:
   ## requests:
@@ -84,7 +85,7 @@ resources:
   ##    memory: 128Mi
   requests:
     cpu: 100m
-    memory: 64Mi
+    memory: 128Mi
 
 autoscaling:
   enabled: false
@@ -126,8 +127,11 @@ ingress:
 config:
   # -- listen address
   listenAddress: 0.0.0.0:8080
-  # -- The upstream URL to proxy to
-  upstream: "http://prometheus:9090"
+  # -- The upstream URL for query paths that are not routed per pillar.
+  # Points at the metrics query endpoint of the selected backend.
+  upstream: "http://thanos-query-telemetry-stack.monitoring.svc:9090/"
+  # -- Extra environment variables for the prom-label-proxy container
+  extraEnv: []
   # -- The label to enforce in all proxies PromQL queries.
   label: "tenant_id"
   # -- Additional arguments for prom-label-proxy as list or YAML multiline string
@@ -137,6 +141,26 @@ config:
   extraArgs:
     - "--enable-label-apis=true"
     - "--error-on-replace=true"
+
+# -- Fallback endpoint per pillar, used when a tenant has no recorded instance.
+# Which backend is deployed, and which instance holds a given tenant, are both read
+# from the cluster rather than configured here, so they cannot disagree.
+backends:
+  metrics:
+    # -- Remote write endpoint. Thanos receive router, or vminsert for
+    # VictoriaMetrics, where the proxy appends /insert/<accountID>/...
+    url: http://thanos-receive-router-telemetry-stack.monitoring.svc:19291
+  logs:
+    # -- ClickHouse HTTP endpoint, or vlinsert for VictoriaLogs
+    url: http://telemetry-stack-clickhouse.monitoring.svc:8123
+    # -- Secret holding the ClickHouse credentials. Leave empty for VictoriaLogs,
+    # which authenticates by tenant header instead.
+    clickhouseAuthSecret: telemetry-stack-clickhouse-auth
+    clickhouseUserKey: username
+    clickhousePasswordKey: password
+  traces:
+    # -- ClickHouse HTTP endpoint, or vtinsert for VictoriaTraces
+    url: http://telemetry-stack-clickhouse.monitoring.svc:8123
 
 # Metrics settings.
 metrics:
@@ -148,7 +172,6 @@ metrics:
 
   # ServiceMonitor settings.
   serviceMonitor:
-
     # If enabled, create ServiceMonitor.
     enabled: false
 
@@ -248,7 +271,7 @@ kubeRBACProxy:
     allowPrivilegeEscalation: false
     capabilities:
       drop:
-      - ALL
+        - ALL
 
   resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious
@@ -272,7 +295,8 @@ kubeRBACProxy:
 ## Extra manifests to deploy.  Can be of type dict or list.
 ## If dict, keys are ignored and only values are used.
 ## Items contained within extraObjects can be defined as dict or string and are passed through tpl.
-extraManifests: null
+extraManifests:
+  null
   # - apiVersion: v1
   #   kind: ConfigMap
   #   metadata:
@@ -326,3 +350,16 @@ platform:
 distro:
   openshift: false
   ubi: ""
+
+# Write path for the central otel-nats forwarder, which names the cluster in a
+# header rather than a certificate. Only clientName may do that, so it must be
+# the forwarder's own identity and a SAN on the certificate it presents.
+# On by default: the listener is mTLS only, is not published through the
+# Gateway, and does nothing until a forwarder connects, so leaving it off only
+# meant otel-nats failed with a 400 on every write.
+forwarder:
+  enabled: true
+  port: 8081
+  # Defaults to otel-forwarder.<release namespace>.svc, which is a SAN on the
+  # certificate service-gateway issues.
+  clientName: ""

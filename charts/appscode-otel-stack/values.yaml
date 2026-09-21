@@ -156,7 +156,9 @@ opentelemetry-kube-stack:
         otel-collector-type: deployment
       image:
         repository: ghcr.io/opnpulse/opentelemetry-collector-ace
-        tag: v0.0.2
+        # Must include natsexporter with sending_queue, or the gateway fails to
+        # start once b3 switches it to the buffer.
+        tag: v0.0.3-test
         pullPolicy: Always
       presets:
         clusterMetrics:
@@ -207,6 +209,14 @@ opentelemetry-kube-stack:
                   - set(resource.attributes["tenant"], resource.attributes["k8s.namespace.name"])
                     where resource.attributes["ace.client"] == "true"
             trace_statements:
+              - context: resource
+                statements:
+                  - set(resource.attributes["tenant"], "default")
+                  - set(resource.attributes["tenant"], resource.attributes["k8s.namespace.name"])
+                    where resource.attributes["ace.client"] == "true"
+            # Through otel-nats the forwarder reads the tenant from this attribute.
+            # The direct ClickHouse exporter ignores it and routes by namespace.
+            log_statements:
               - context: resource
                 statements:
                   - set(resource.attributes["tenant"], "default")
@@ -278,7 +288,7 @@ opentelemetry-kube-stack:
           extensions: [headers_setter]
           pipelines:
             logs:
-              processors: [memory_limiter]
+              processors: [memory_limiter, transform/tenant]
               receivers: [otlp]
               exporters: [clickhouse]
             metrics:

@@ -1,0 +1,20 @@
+project:
+  name: OTel NATS by AppsCode
+  shortName: OTel NATS
+  url: https://github.com/opnpulse/otel-nats
+  description: NATS JetStream buffer between workload clusters and the telemetry backends
+  app: an OTel NATS pipeline
+repository:
+  url: oci://ghcr.io/appscode-charts
+  name: appscode-charts
+chart:
+  name: otel-nats
+  values: -- generate from values file --
+  valuesExample: -- generate from values file --
+prerequisites:
+- Kubernetes 1.21+
+- cert-manager, for the NATS server and forwarder client certificates
+- prom-label-proxy, which is what this chart writes through
+release:
+  name: otel-nats
+  namespace: monitoring

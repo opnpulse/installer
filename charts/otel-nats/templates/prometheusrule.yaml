@@ -1,0 +1,100 @@
+{{- /*
+PrometheusRule for the alerts called out in DESIGN.md §8.7, §9, and §11.
+Names match those sections verbatim where possible so the runbook can
+link by alert name.
+
+Disable per-environment via .Values.prometheusRule.enabled.
+*/ -}}
+{{- if .Values.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: otel-nats
+  namespace: {{ .Values.prometheusRule.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "otel-nats.labels" . | nindent 4 }}
+    {{- with .Values.prometheusRule.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: otel-nats.pipeline
+      interval: 30s
+      rules:
+        # DESIGN §9: page when an exporter's send queue is near capacity.
+        - alert: OTelExporterQueueNearCapacity
+          expr: |
+            (otelcol_exporter_queue_size / otelcol_exporter_queue_capacity) > 0.9
+          for: 5m
+          labels:
+            severity: page
+          annotations:
+            summary: "OTel exporter queue >90% full for 5m ({{`{{ $labels.exporter }}`}})"
+            runbook: "docs/runbook.md#10-central-forwarder-oomkill"
+
+        # No receiver-refused rule: the NATS receiver emits no otelcol_receiver_*
+        # metrics. Permanent rejections land in the DLQ (DLQDepthGrowing) and
+        # retried ones show as consumer lag (JetStreamConsumerLagRising).
+
+    - name: otel-nats.jetstream
+      interval: 30s
+      rules:
+        # Every node reports every R3 stream, so each is read from its leader only.
+        - alert: JetStreamConsumerLagRising
+          expr: |
+            deriv(nats_consumer_num_pending{is_consumer_leader="true"}[10m]) > 0
+            and nats_consumer_num_pending{is_consumer_leader="true"} > 1000
+          for: 10m
+          labels:
+            severity: page
+          annotations:
+            summary: "JetStream consumer lag rising for 10m ({{`{{ $labels.stream_name }}`}}/{{`{{ $labels.consumer_name }}`}})"
+            runbook: "docs/runbook.md#8-backend-outage-clickhouse--victoriametrics--victorialogs--thanos"
+
+        - alert: JetStreamStreamBytesHigh
+          expr: |
+            nats_stream_total_bytes{is_stream_leader="true"}
+              / (nats_stream_limit_bytes{is_stream_leader="true"} > 0) > 0.8
+          for: 15m
+          labels:
+            severity: page
+          annotations:
+            summary: "JetStream stream >80% of max for 15m ({{`{{ $labels.stream_name }}`}})"
+            runbook: "docs/runbook.md#7-nats-quorum-loss--leader-kill"
+
+        # JetStream's own accounting, since node-exporter cannot see the pod's
+        # /data and local-path volumes report no kubelet volume stats.
+        - alert: JetStreamDiskSaturationHigh
+          expr: |
+            nats_varz_jetstream_stats_storage
+              / (nats_varz_jetstream_config_max_storage > 0) > 0.7
+          for: 10m
+          labels:
+            severity: page
+          annotations:
+            summary: "JetStream file store >70% full for 10m ({{`{{ $labels.pod }}`}})"
+
+        - alert: DLQDepthGrowing
+          expr: |
+            deriv(nats_stream_total_messages{stream_name="OTEL_DLQ",is_stream_leader="true"}[10m]) > 0
+          for: 10m
+          labels:
+            severity: ticket
+          annotations:
+            summary: "DLQ stream messages rising for 10m, inspect via dlq-inspector consumer"
+            runbook: "docs/runbook.md#13-dlq-inspection"
+
+    - name: otel-nats.ingest
+      interval: 30s
+      rules:
+        # The forwarders stay connected, so zero means nothing can reach NATS.
+        - alert: IngestAccountConnectionsZero
+          expr: |
+            sum(nats_accstatz_current_connections{account_name="OTEL_INGEST"}) == 0
+          for: 5m
+          labels:
+            severity: page
+          annotations:
+            summary: "OTEL_INGEST has zero NATS connections for 5m"
+            runbook: "docs/runbook.md#7-nats-quorum-loss--leader-kill"
+{{- end }}

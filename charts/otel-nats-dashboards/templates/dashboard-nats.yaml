@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-nats-dashboard-nats
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{ .Values.sidecarLabel.key }}: {{ .Values.sidecarLabel.value | quote }}
+  annotations:
+    grafana_folder: {{ .Values.folder | quote }}
+data:
+  nats.json: |-
+{{ .Files.Get "files/nats.json" | indent 4 }}

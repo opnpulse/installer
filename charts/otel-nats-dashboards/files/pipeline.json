@@ -1,0 +1,53 @@
+{
+  "title": "otel-nats / Pipeline overview",
+  "uid": "otel-nats-pipeline",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": ["otel-nats"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "cluster",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROM}" },
+        "query": "label_values(otelcol_exporter_sent_spans, cluster)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Spans accepted / sent per tier",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROM}" },
+      "targets": [
+        { "expr": "sum by (service_name) (rate(otelcol_receiver_accepted_spans{cluster=~\"$cluster\"}[1m]))", "legendFormat": "{{service_name}} accepted" },
+        { "expr": "sum by (service_name) (rate(otelcol_exporter_sent_spans{cluster=~\"$cluster\"}[1m]))",     "legendFormat": "{{service_name}} sent" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Exporter queue size / capacity",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROM}" },
+      "targets": [
+        { "expr": "otelcol_exporter_queue_size{cluster=~\"$cluster\"}", "legendFormat": "{{service_name}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "JetStream consumer lag (num_pending)",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROM}" },
+      "targets": [
+        { "expr": "nats_jetstream_consumer_num_pending", "legendFormat": "{{stream}}/{{consumer}}" }
+      ]
+    }
+  ]
+}

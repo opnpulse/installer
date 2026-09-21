@@ -1,0 +1,48 @@
+{
+  "title": "otel-nats / Workload cluster",
+  "uid": "otel-nats-workload",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": ["otel-nats", "workload"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "cluster",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROM}" },
+        "query": "label_values(otelcol_receiver_accepted_spans, k8s_cluster_name)",
+        "refresh": 2
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Agent acceptance vs. drops",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum(rate(otelcol_receiver_accepted_spans{k8s_cluster_name=\"$cluster\"}[1m]))", "legendFormat": "accepted" },
+        { "expr": "sum(rate(otelcol_receiver_refused_spans{k8s_cluster_name=\"$cluster\"}[1m]))",  "legendFormat": "refused" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Gateway file_storage queue size",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "otelcol_exporter_queue_size{exporter=\"nats\", k8s_cluster_name=\"$cluster\"}", "legendFormat": "queue" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "NATS publish errors",
+      "gridPos": { "x": 0, "y": 8, "w": 24, "h": 8 },
+      "targets": [
+        { "expr": "sum by (signal) (rate(nats_exporter_publish_errors{k8s_cluster_name=\"$cluster\"}[1m]))", "legendFormat": "{{signal}}" }
+      ]
+    }
+  ]
+}

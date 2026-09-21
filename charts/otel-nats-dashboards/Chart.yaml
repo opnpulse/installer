@@ -1,0 +1,14 @@
+apiVersion: v2
+name: otel-nats-dashboards
+description: Grafana dashboards for the otel-nats pipeline, shipped as
+  ConfigMaps labeled grafana_dashboard=1 for sidecar discovery.
+type: application
+version: v2026.9.22
+appVersion: "0.1.0"
+keywords:
+  - opentelemetry
+  - nats
+  - grafana
+home: https://github.com/opnpulse/otel-nats
+maintainers:
+  - name: open-pulse

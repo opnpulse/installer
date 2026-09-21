@@ -1,0 +1,11 @@
+# Its presence is how tenant-operator detects that NATS is installed and starts
+# the account bootstrap.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-nats-endpoint
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "otel-nats.labels" . | nindent 4 }}
+data:
+  nats-url: tls://{{ include "otel-nats.publicHostname" . }}:{{ .Values.gateway.port }}

@@ -1,0 +1,9 @@
+dependencies:
+- name: otel-nats-dashboards
+  repository: file://../otel-nats-dashboards
+  version: v2026.9.22
+- name: nats
+  repository: oci://ghcr.io/appscode-charts
+  version: 0.19.17
+digest: sha256:49361a0d6b07e43b43faa1a32bd8fb89914f1a4466e0ca456af412aac62f80d9
+generated: "2026-09-22T17:18:24.865862759+06:00"
