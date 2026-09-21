@@ -36,6 +36,35 @@ spec:
       securityContext:
         {{- toYaml .Values.persistence.securityContext | nindent 8 }}
       {{- end }}
+      {{- if .Values.initContainer.enabled }}
+      initContainers:
+      - name: wait-for-db
+        image: "{{ .Values.initContainer.image.repository }}:{{ .Values.initContainer.image.tag }}"
+        imagePullPolicy: {{ .Values.initContainer.image.pullPolicy }}
+        command:
+        - /bin/sh
+        - -c
+        - |
+          until nc -z -w 2 {{ include "perses.dbHost" . }} {{ include "perses.dbPort" . }}; do
+            echo "waiting for {{ include "perses.dbHost" . }}:{{ include "perses.dbPort" . }} ...";
+            sleep 2;
+          done
+        {{- with .Values.initContainer.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          {{- if ne "true" ( include "distro.openshift" . ) }}
+          runAsUser: 65534
+          {{- end }}
+          seccompProfile:
+            type: RuntimeDefault
+      {{- end }}
       containers:
       {{- if .Values.sidecar.enabled }}
       - name: {{ .Chart.Name }}-provisioning-sidecar

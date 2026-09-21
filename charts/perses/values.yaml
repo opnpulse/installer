@@ -20,6 +20,21 @@ image:
   # -- Default image pull policy
   pullPolicy: Always
 
+# -- Init container that blocks Perses startup until the SQL database accepts TCP connections.
+# Only used when `config.database.sql` is set.
+initContainer:
+  # -- enable the wait-for-db init container
+  enabled: true
+  image:
+    # -- Init container image repository and name
+    repository: ghcr.io/appscode-images/postgres
+    # -- Init container image tag
+    tag: 16.4-alpine
+    # -- Init container image pull policy
+    pullPolicy: IfNotPresent
+  # -- Init container resources
+  resources: {}
+
 additionalLabels:
   {}
   # app: perses
