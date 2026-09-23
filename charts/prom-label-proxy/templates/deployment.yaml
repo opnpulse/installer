@@ -171,7 +171,7 @@ spec:
         - name: proxy-tls
           secret:
             defaultMode: 420
-            secretName: {{ template "prom-label-proxy.namespace" . }}-gw-cert
+            secretName: {{ include "prom-label-proxy.gatewayClass" . }}-gw-cert
       {{-  if and .Values.kubeRBACProxy.enabled .Values.kubeRBACProxy.config }}
         - name: kube-rbac-proxy-config
           configMap:

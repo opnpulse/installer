@@ -4,7 +4,7 @@ metadata:
   name: {{ include "prom-label-proxy.name" . }}-gw
   namespace: {{ template "prom-label-proxy.namespace" . }}
 spec:
-  gatewayClassName: {{ template "prom-label-proxy.namespace" . }}
+  gatewayClassName: {{ include "prom-label-proxy.gatewayClass" . }}
   listeners:
     - name: https
       port: 443
@@ -13,7 +13,7 @@ spec:
         mode: Terminate
         certificateRefs:
           - kind: Secret
-            name: {{ template "prom-label-proxy.namespace" . }}-gw-cert
+            name: {{ include "prom-label-proxy.gatewayClass" . }}-gw-cert
             namespace: {{ template "prom-label-proxy.namespace" . }}
     - name: mtls
       port: 10001
@@ -61,7 +61,7 @@ spec:
     caCertificateRefs:
       - group: ""
         kind: Secret
-        name: {{ template "prom-label-proxy.namespace" . }}-gw-cert
+        name: {{ include "prom-label-proxy.gatewayClass" . }}-gw-cert
     hostname: {{ include "prom-label-proxy.name" . }}.{{ template "prom-label-proxy.namespace" . }}.svc.cluster.local
 
 ---

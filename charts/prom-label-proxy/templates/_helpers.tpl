@@ -70,6 +70,23 @@ Create the name of the service account to use
 {{- end -}}
 
 {{/*
+On the ACE hub, service-gateway runs in its own tenant namespace and its cert is synced into
+this namespace by config-syncer, so fall back to the default GatewayClass when none matches the namespace.
+*/}}
+{{- define "prom-label-proxy.gatewayClass" -}}
+{{- $ns := include "prom-label-proxy.namespace" . -}}
+{{- $gc := $ns -}}
+{{- if not (lookup "gateway.networking.k8s.io/v1" "GatewayClass" "" $ns) -}}
+  {{- range (dig "items" list (lookup "gateway.networking.k8s.io/v1" "GatewayClass" "" "")) -}}
+    {{- if eq (dig "metadata" "annotations" "catalog.appscode.com/is-default-gatewayclass" "" .) "true" -}}
+      {{- $gc = .metadata.name -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- $gc -}}
+{{- end -}}
+
+{{/*
 The image to use for kubeRBACProxy
 */}}
 {{- define "kubeRBACProxy.image" -}}
