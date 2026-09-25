@@ -16,6 +16,19 @@ opentelemetry-kube-stack:
       featureGatesMap:
         operator.targetallocator.mtls: true
       createRbacPermissions: true
+      resources:
+        limits:
+          memory: 512Mi
+        requests:
+          cpu: 50m
+          memory: 128Mi
+    kubeRBACProxy:
+      resources:
+        limits:
+          memory: 128Mi
+        requests:
+          cpu: 5m
+          memory: 32Mi
   admissionWebhooks:
     autoGenerateCert:
       enabled: true
@@ -43,6 +56,12 @@ opentelemetry-kube-stack:
         serviceAccount: targetallocator
         image: ghcr.io/open-telemetry/opentelemetry-operator/target-allocator:main
         allocationStrategy: per-node
+        resources:
+          limits:
+            memory: 512Mi
+          requests:
+            cpu: 50m
+            memory: 128Mi
         prometheusCR:
           enabled: true
           podMonitorSelector: {}
@@ -136,10 +155,10 @@ opentelemetry-kube-stack:
             - "prom-label-proxy.monitoring.svc.cluster.local"
       resources:
         limits:
-          memory: 1Gi
+          memory: 2Gi
         requests:
           cpu: 200m
-          memory: 512Mi
+          memory: 768Mi
       suffix: gateway
       enabled: true
       volumeMounts:
