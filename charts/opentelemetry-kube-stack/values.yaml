@@ -180,7 +180,6 @@ defaultCRConfig:
       cpu: "250m"
     limits:
       memory: "128Mi"
-      cpu: "250m"
 
   # Node selector for the collector
   nodeSelector: {}
@@ -528,7 +527,6 @@ collectors:
     enabled: true
     resources:
       limits:
-        cpu: 200m
         memory: 500Mi
       requests:
         cpu: 100m
