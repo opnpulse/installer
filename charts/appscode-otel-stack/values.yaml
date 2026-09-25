@@ -147,6 +147,11 @@ opentelemetry-kube-stack:
           enabled: false
         kubernetesAttributes:
           enabled: true
+        # k8s_cluster metrics carry pod/namespace only as resource attributes, which
+        # prometheusremotewrite drops, so all series collapse and Thanos rejects them
+        # as duplicates. kube-state-metrics already provides these metrics.
+        clusterMetrics:
+          enabled: false
 
     cluster:
       hostAliases:
@@ -242,6 +247,10 @@ opentelemetry-kube-stack:
             send_batch_max_size: 512
             metadata_keys:
               - tenant-id
+          batch/logs:
+            send_batch_size: 5000
+            send_batch_max_size: 10000
+            timeout: 5s
         exporters:
           debug:
             verbosity: detailed
@@ -295,7 +304,7 @@ opentelemetry-kube-stack:
           extensions: [headers_setter]
           pipelines:
             logs:
-              processors: [memory_limiter]
+              processors: [memory_limiter, batch/logs]
               receivers: [otlp]
               exporters: [clickhouse]
             metrics:
