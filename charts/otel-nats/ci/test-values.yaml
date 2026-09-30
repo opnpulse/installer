@@ -1,0 +1,26 @@
+# ct runs without tenant-operator, so there is no generated account and the
+# NATS server would just wait. The subchart is off; this covers our templates.
+publicHostname: nats.ci.local
+
+nats:
+  enabled: false
+
+# ct has no GatewayClass, so exposure is off for the install test.
+gateway:
+  enabled: false
+
+bootstrap:
+  enabled: false
+
+serviceMonitor:
+  enabled: false
+prometheusRule:
+  enabled: false
+
+# The forwarder mounts secrets and a config that tenant-operator writes, which
+# ct doesn't have, so its pods could never become ready under --wait. Templates
+# still render; the Deployment just runs no pods.
+forwarder:
+  replicas: 0
+  hpa:
+    enabled: false

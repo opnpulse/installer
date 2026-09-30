@@ -1,0 +1,74 @@
+{{- /*
+The gateway cert SANs are literal, so the Service must be named otel-nats or
+the workload gateways fail with an opaque TLS error.
+*/ -}}
+{{- $svc := include "otel-nats.natsService" . -}}
+{{- if and .Values.nats.enabled (ne $svc "otel-nats") }}
+{{- fail (printf "otel-nats: release name %q produces the Service %q, but the gateway certificate only carries SANs for \"otel-nats\". Install with: helm install otel-nats ..." .Release.Name $svc) }}
+{{- end }}
+
+{{- /*
+Each node stores every stream, so the file store must hold their sum or
+JetStream refuses to create the later streams.
+*/ -}}
+{{- if .Values.nats.enabled }}
+{{- $streams := .Values.nats.streams -}}
+{{- $sum := add $streams.metrics.maxGiB $streams.logs.maxGiB $streams.traces.maxGiB $streams.dlq.maxGiB -}}
+{{- $pvc := .Values.nats.nats.jetstream.fileStorage.size | trimSuffix "Gi" | float64 -}}
+{{- if gt (float64 $sum) $pvc }}
+{{- fail (printf "otel-nats: the streams ask for %dGi per node but the file store is %v. Every stream is replicated to all nodes, so raise nats.nats.jetstream.fileStorage.size above %dGi or lower nats.streams.*.maxGiB." $sum .Values.nats.nats.jetstream.fileStorage.size $sum) }}
+{{- end }}
+{{- end }}
+
+{{- /*
+Without a default StorageClass the PVC sits Pending silently. This and the later
+lookup checks return nothing under helm template and skip themselves.
+*/ -}}
+{{- if and .Values.nats.enabled .Values.nats.nats.jetstream.fileStorage.enabled (not .Values.nats.nats.jetstream.fileStorage.storageClassName) }}
+{{- $classes := (lookup "storage.k8s.io/v1" "StorageClass" "" "").items }}
+{{- if $classes }}
+{{- $default := "" }}
+{{- range $classes }}
+{{- if eq (index (.metadata.annotations | default dict) "storageclass.kubernetes.io/is-default-class" | default "false") "true" }}
+{{- $default = .metadata.name }}
+{{- end }}
+{{- end }}
+{{- if not $default }}
+{{- $names := list }}
+{{- range $classes }}{{ $names = append $names .metadata.name }}{{ end }}
+{{- fail (printf "otel-nats: this cluster has no default StorageClass, so the JetStream PVC would stay Pending. Set nats.nats.jetstream.fileStorage.storageClassName to one of: %s" (join ", " $names)) }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- /*
+Without prom-label-proxy's forwarder listener every write returns 400 and the
+buffer never drains.
+*/ -}}
+{{- if .Values.nats.enabled }}
+{{- $svc := lookup "v1" "Service" .Values.promLabelProxyNamespace "prom-label-proxy" }}
+{{- if $svc }}
+{{- $found := false }}
+{{- range $svc.spec.ports }}
+{{- if eq (int .port) (int $.Values.promLabelProxyPort) }}{{ $found = true }}{{ end }}
+{{- end }}
+{{- if not $found }}
+{{- fail (printf "otel-nats: prom-label-proxy in %s does not expose port %v, so the forwarder has nowhere to write. Install that chart with forwarder.enabled=true, or point promLabelProxyPort at the listener it does expose." .Values.promLabelProxyNamespace .Values.promLabelProxyPort) }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- /*
+tenant-operator writes the resolver ConfigMap only while reconciling a
+TelemetryStack; without one the NATS pods wait in ContainerCreating.
+*/ -}}
+{{- if .Values.nats.enabled }}
+{{- $api := "monitoring.k8s.appscode.com/v1alpha1" }}
+{{- $crd := lookup "apiextensions.k8s.io/v1" "CustomResourceDefinition" "" "telemetrystacks.monitoring.k8s.appscode.com" }}
+{{- if $crd }}
+{{- $stacks := (lookup $api "TelemetryStack" "" "").items }}
+{{- if not $stacks }}
+{{- fail "otel-nats: no TelemetryStack exists, so tenant-operator will never write the resolver config and the NATS pods would wait in ContainerCreating. Create the TelemetryStack first." }}
+{{- end }}
+{{- end }}
+{{- end }}

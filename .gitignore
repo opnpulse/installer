@@ -37,3 +37,4 @@ _testmain.go
 .DS_Store
 
 /charts/appscode-otel-stack/charts
+/charts/otel-nats/charts/otel-nats-dashboards-*.tgz
