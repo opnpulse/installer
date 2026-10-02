@@ -6,7 +6,153 @@ metadata:
     {{- include "tenant-operator.labels" . | nindent 4 }}
 rules:
 - apiGroups:
-  - "*"
+  - ""
   resources:
-  - "*"
-  verbs: ["*"]
+  - configmaps
+  verbs:
+  - create
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - delete
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - issuers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - kubedb.com
+  resources:
+  - clickhouses
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - monitoring.k8s.appscode.com
+  resources:
+  - telemetrystacks
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.k8s.appscode.com
+  resources:
+  - telemetrystacks/finalizers
+  - tenants/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - monitoring.k8s.appscode.com
+  resources:
+  - tenants
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - monitoring.k8s.appscode.com
+  resources:
+  - tenants/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - monitoring.thanos.io
+  resources:
+  - thanoscompacts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - monitoring.thanos.io
+  resources:
+  - thanosqueries
+  - thanosreceives
+  - thanosrulers
+  - thanosstores
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vlclusters
+  - vlsingles
+  - vmclusters
+  - vmsingles
+  - vtclusters
+  - vtsingles
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - watch
