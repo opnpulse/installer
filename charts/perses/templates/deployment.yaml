@@ -45,7 +45,7 @@ spec:
         - /bin/sh
         - -c
         - |
-          until nc -z -w 2 {{ include "perses.dbHost" . }} {{ include "perses.dbPort" . }}; do
+          until pg_isready -q -t 2 -h {{ include "perses.dbHost" . }} -p {{ include "perses.dbPort" . }}; do
             echo "waiting for {{ include "perses.dbHost" . }}:{{ include "perses.dbPort" . }} ...";
             sleep 2;
           done
