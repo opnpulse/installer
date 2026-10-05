@@ -73,3 +73,12 @@ Returns whether the OpenShift distribution is used
 {{- define "distro.openshift" -}}
 {{- or (.Capabilities.APIVersions.Has "project.openshift.io/v1/Project") .Values.distro.openshift -}}
 {{- end }}
+
+{{- define "perses.dbHost" -}}
+{{- (splitList ":" .Values.config.database.sql.addr) | first -}}
+{{- end }}
+
+{{- define "perses.dbPort" -}}
+{{- $parts := splitList ":" .Values.config.database.sql.addr -}}
+{{- if gt (len $parts) 1 }}{{ last $parts }}{{ else }}5432{{ end -}}
+{{- end }}

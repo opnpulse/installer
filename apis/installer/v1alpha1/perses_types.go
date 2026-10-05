@@ -52,6 +52,8 @@ type PersesSpec struct {
 	FullnameOverride string      `json:"fullnameOverride"`
 	Image            PersesImage `json:"image"`
 	//+optional
+	InitContainer PersesInitContainer `json:"initContainer"`
+	//+optional
 	AdditionalLabels map[string]string    `json:"additionalLabels"`
 	ServiceAccount   ServiceAccountSpec   `json:"serviceAccount"`
 	Service          PersesService        `json:"service"`
@@ -110,6 +112,19 @@ type PersesSpec struct {
 type PersesImage struct {
 	Name       string `json:"name"`
 	Version    string `json:"version"`
+	PullPolicy string `json:"pullPolicy"`
+}
+
+type PersesInitContainer struct {
+	Enabled bool                     `json:"enabled"`
+	Image   PersesInitContainerImage `json:"image"`
+	//+optional
+	Resources core.ResourceRequirements `json:"resources"`
+}
+
+type PersesInitContainerImage struct {
+	Repository string `json:"repository"`
+	Tag        string `json:"tag"`
 	PullPolicy string `json:"pullPolicy"`
 }
 
